@@ -1,0 +1,16 @@
+langchain
+langchain-groq
+langgraph
+langchain-community
+pandas
+duckdb
+polars
+numpy
+plotly
+seaborn
+matplotlib
+scipy
+statsmodels
+streamlit
+python-dotenv
+pydantic
