@@ -40,6 +40,8 @@ data/checkpoints/*
 .idea/
 *.swp
 *.swo
+*.claude
+*.codemie
 *~
 
 # OS
