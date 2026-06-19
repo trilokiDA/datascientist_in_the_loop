@@ -1,11 +1,13 @@
 from typing import Dict, Any, Literal
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
 from pathlib import Path
 
 from src.utils.types import EDAState
 from src.data.dataset_handle import DatasetHandle
 from src.agents.profile_agent import ProfileAgent
+from src.agents.quality_agent import QualityAgent
+from src.agents.transform_agent import TransformAgent
 from src.utils.helpers import get_timestamp, create_reasoning_log
 
 
@@ -18,12 +20,13 @@ class EDAWorkflow:
         self.checkpoint_dir = Path(checkpoint_dir)
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-        # Initialize checkpoint saver
-        db_path = self.checkpoint_dir / "checkpoints.db"
-        self.checkpointer = SqliteSaver.from_conn_string(str(db_path))
+        # Initialize checkpoint saver (MemorySaver for now, can use SqliteSaver with langgraph-checkpoint-sqlite package)
+        self.checkpointer = MemorySaver()
 
         # Initialize agents
         self.profile_agent = ProfileAgent()
+        self.quality_agent = QualityAgent()
+        self.transform_agent = TransformAgent()
 
         # Build graph
         self.graph = self._build_graph()
@@ -36,19 +39,57 @@ class EDAWorkflow:
 
         # Add nodes
         workflow.add_node("profile", self._profile_node)
-        workflow.add_node("human_review", self._human_review_node)
+        workflow.add_node("quality_check", self._quality_node)
+        workflow.add_node("transform_proposal", self._transform_node)
+        workflow.add_node("human_review_profile", self._human_review_node)
+        workflow.add_node("human_review_quality", self._human_review_node)
+        workflow.add_node("human_review_transforms", self._human_review_node)
 
-        # Add edges
+        # Quick Profile Workflow
+        # profile → human_review_profile → quality_check → human_review_quality → END
+
+        # Set entry point
         workflow.set_entry_point("profile")
-        workflow.add_edge("profile", "human_review")
 
-        # Conditional edge after human review
+        # Profile → Human Review
+        workflow.add_edge("profile", "human_review_profile")
+
+        # Human Review Profile → Conditional
         workflow.add_conditional_edges(
-            "human_review",
-            self._route_after_review,
+            "human_review_profile",
+            self._route_after_profile_review,
             {
-                "continue": END,  # For now, end after profile
-                "retry": "profile"
+                "quality": "quality_check",
+                "retry": "profile",
+                "end": END
+            }
+        )
+
+        # Quality → Human Review
+        workflow.add_edge("quality_check", "human_review_quality")
+
+        # Human Review Quality → Conditional
+        workflow.add_conditional_edges(
+            "human_review_quality",
+            self._route_after_quality_review,
+            {
+                "transform": "transform_proposal",
+                "retry": "quality_check",
+                "end": END
+            }
+        )
+
+        # Transform → Human Review
+        workflow.add_edge("transform_proposal", "human_review_transforms")
+
+        # Human Review Transforms → Conditional
+        workflow.add_conditional_edges(
+            "human_review_transforms",
+            self._route_after_transform_review,
+            {
+                "apply": END,  # In production, would go to apply_transforms node
+                "retry": "transform_proposal",
+                "end": END
             }
         )
 
@@ -57,7 +98,7 @@ class EDAWorkflow:
     def _profile_node(self, state: EDAState) -> Dict[str, Any]:
         """Profile node - runs ProfileAgent"""
 
-        # Get dataset handle (in real implementation, this would be loaded from state)
+        # Get dataset handle
         dataset_handle = DatasetHandle(state["dataset_path"])
 
         # Run profile agent
@@ -80,10 +121,99 @@ class EDAWorkflow:
             "completed_steps": state.get("completed_steps", []) + ["profile"],
             "pending_approval": True,
             "approval_context": {
+                "step": "profile",
                 "agent": "ProfileAgent",
                 "recommendations": response["recommendations"],
                 "reasoning": response["reasoning"],
-                "impact": response["impact"]
+                "impact": response["impact"],
+                "confidence": response["confidence"]
+            },
+            "updated_at": get_timestamp()
+        }
+
+    def _quality_node(self, state: EDAState) -> Dict[str, Any]:
+        """Quality node - runs QualityAgent"""
+
+        # Get dataset handle
+        dataset_handle = DatasetHandle(state["dataset_path"])
+
+        # Prepare context from previous steps
+        context = {
+            "profile_results": state.get("profile_results")
+        }
+
+        # Run quality agent
+        response = self.quality_agent.analyze(dataset_handle, context)
+
+        # Update state
+        reasoning_log = create_reasoning_log(
+            agent="QualityAgent",
+            action="quality_assessment",
+            reasoning=response["reasoning"],
+            impact=response["impact"],
+            confidence=response["confidence"]
+        )
+
+        return {
+            **state,
+            "quality_results": response["result"],
+            "reasoning_log": state.get("reasoning_log", []) + [reasoning_log],
+            "current_step": "quality_check",
+            "completed_steps": state.get("completed_steps", []) + ["quality_check"],
+            "pending_approval": True,
+            "approval_context": {
+                "step": "quality_check",
+                "agent": "QualityAgent",
+                "recommendations": response["recommendations"],
+                "reasoning": response["reasoning"],
+                "impact": response["impact"],
+                "confidence": response["confidence"]
+            },
+            "updated_at": get_timestamp()
+        }
+
+    def _transform_node(self, state: EDAState) -> Dict[str, Any]:
+        """Transform node - runs TransformAgent to propose transformations"""
+
+        # Get dataset handle
+        dataset_handle = DatasetHandle(state["dataset_path"])
+
+        # Prepare context from previous steps
+        context = {
+            "profile_results": state.get("profile_results"),
+            "quality_results": state.get("quality_results")
+        }
+
+        # Run transform agent
+        response = self.transform_agent.analyze(dataset_handle, context)
+
+        # Update state with proposed transformations
+        reasoning_log = create_reasoning_log(
+            agent="TransformAgent",
+            action="transformation_proposal",
+            reasoning=response["reasoning"],
+            impact=response["impact"],
+            confidence=response["confidence"]
+        )
+
+        # Store transformations as pending
+        pending_transformations = response["result"].get("transformations", [])
+
+        return {
+            **state,
+            "pending_transformations": pending_transformations,
+            "reasoning_log": state.get("reasoning_log", []) + [reasoning_log],
+            "current_step": "transform_proposal",
+            "completed_steps": state.get("completed_steps", []) + ["transform_proposal"],
+            "pending_approval": True,
+            "approval_context": {
+                "step": "transform_proposal",
+                "agent": "TransformAgent",
+                "recommendations": response["recommendations"],
+                "reasoning": response["reasoning"],
+                "impact": response["impact"],
+                "confidence": response["confidence"],
+                "transformations": pending_transformations
             },
             "updated_at": get_timestamp()
         }
@@ -96,27 +226,60 @@ class EDAWorkflow:
 
         return {
             **state,
-            "current_step": "human_review",
+            "current_step": f"human_review_{state['current_step']}",
             "updated_at": get_timestamp()
         }
 
-    def _route_after_review(self, state: EDAState) -> Literal["continue", "retry"]:
-        """Route based on user decision"""
+    def _route_after_profile_review(self, state: EDAState) -> Literal["quality", "retry", "end"]:
+        """Route based on user decision after profile review"""
 
-        # Check if user approved
         user_decisions = state.get("user_decisions", [])
 
         if not user_decisions:
-            return "continue"
+            return "quality"  # Default: continue to quality
 
         last_decision = user_decisions[-1]
 
         if last_decision["decision"] == "approved":
-            return "continue"
+            return "quality"
         elif last_decision["decision"] == "rejected":
             return "retry"
         else:
-            return "continue"
+            return "end"
+
+    def _route_after_quality_review(self, state: EDAState) -> Literal["transform", "retry", "end"]:
+        """Route based on user decision after quality review"""
+
+        user_decisions = state.get("user_decisions", [])
+
+        if not user_decisions:
+            return "transform"  # Default: continue to transform
+
+        last_decision = user_decisions[-1]
+
+        if last_decision["decision"] == "approved":
+            return "transform"
+        elif last_decision["decision"] == "rejected":
+            return "retry"
+        else:
+            return "end"
+
+    def _route_after_transform_review(self, state: EDAState) -> Literal["apply", "retry", "end"]:
+        """Route based on user decision after transform review"""
+
+        user_decisions = state.get("user_decisions", [])
+
+        if not user_decisions:
+            return "end"  # Default: end (wait for explicit approval)
+
+        last_decision = user_decisions[-1]
+
+        if last_decision["decision"] == "approved":
+            return "apply"
+        elif last_decision["decision"] == "rejected":
+            return "retry"
+        else:
+            return "end"
 
     def create_initial_state(
         self,
@@ -176,9 +339,25 @@ class EDAWorkflow:
     def get_state(self, thread_id: str) -> EDAState:
         """Get current state for a thread"""
         config = {"configurable": {"thread_id": thread_id}}
-        return self.graph.get_state(config)
+        state_snapshot = self.graph.get_state(config)
+        return state_snapshot.values if state_snapshot else None
 
     def update_state(self, thread_id: str, updates: Dict[str, Any]):
         """Update state and resume workflow"""
         config = {"configurable": {"thread_id": thread_id}}
         self.graph.update_state(config, updates)
+
+    def resume(self, thread_id: str):
+        """
+        Resume workflow from checkpoint
+
+        Args:
+            thread_id: Thread ID to resume
+
+        Returns:
+            Generator of state updates
+        """
+        config = {"configurable": {"thread_id": thread_id}}
+
+        for event in self.graph.stream(None, config):
+            yield event
