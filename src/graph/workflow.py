@@ -8,6 +8,9 @@ from src.data.dataset_handle import DatasetHandle
 from src.agents.profile_agent import ProfileAgent
 from src.agents.quality_agent import QualityAgent
 from src.agents.transform_agent import TransformAgent
+from src.agents.viz_agent import VisualizationAgent
+from src.agents.feature_agent import FeatureAgent
+from src.agents.stat_agent import StatAgent
 from src.utils.helpers import get_timestamp, create_reasoning_log
 
 
@@ -27,6 +30,9 @@ class EDAWorkflow:
         self.profile_agent = ProfileAgent()
         self.quality_agent = QualityAgent()
         self.transform_agent = TransformAgent()
+        self.viz_agent = VisualizationAgent()
+        self.feature_agent = FeatureAgent()
+        self.stat_agent = StatAgent()
 
         # Build graph
         self.graph = self._build_graph()
@@ -214,6 +220,138 @@ class EDAWorkflow:
                 "impact": response["impact"],
                 "confidence": response["confidence"],
                 "transformations": pending_transformations
+            },
+            "updated_at": get_timestamp()
+        }
+
+    def _visualization_node(self, state: EDAState) -> Dict[str, Any]:
+        """Visualization node - runs VisualizationAgent"""
+
+        # Get dataset handle
+        dataset_handle = DatasetHandle(state["dataset_path"])
+
+        # Prepare context from previous steps
+        context = {
+            "profile_results": state.get("profile_results"),
+            "quality_results": state.get("quality_results")
+        }
+
+        # Run visualization agent
+        response = self.viz_agent.analyze(dataset_handle, context)
+
+        # Update state
+        reasoning_log = create_reasoning_log(
+            agent="VisualizationAgent",
+            action="visualization_generation",
+            reasoning=response["reasoning"],
+            impact=response["impact"],
+            confidence=response["confidence"]
+        )
+
+        # Store visualization results
+        viz_results = response["result"]
+
+        return {
+            **state,
+            "visualizations": viz_results.get("plots", []),
+            "viz_results": viz_results,
+            "reasoning_log": state.get("reasoning_log", []) + [reasoning_log],
+            "current_step": "visualization",
+            "completed_steps": state.get("completed_steps", []) + ["visualization"],
+            "pending_approval": True,
+            "approval_context": {
+                "step": "visualization",
+                "agent": "VisualizationAgent",
+                "recommendations": response["recommendations"],
+                "reasoning": response["reasoning"],
+                "impact": response["impact"],
+                "confidence": response["confidence"],
+                "viz_summary": viz_results.get("summary", {})
+            },
+            "updated_at": get_timestamp()
+        }
+
+    def _feature_analysis_node(self, state: EDAState) -> Dict[str, Any]:
+        """Feature analysis node - runs FeatureAgent"""
+
+        # Get dataset handle
+        dataset_handle = DatasetHandle(state["dataset_path"])
+
+        # Prepare context from previous steps
+        context = {
+            "profile_results": state.get("profile_results"),
+            "quality_results": state.get("quality_results")
+        }
+
+        # Run feature agent
+        response = self.feature_agent.analyze(dataset_handle, context)
+
+        # Update state
+        reasoning_log = create_reasoning_log(
+            agent="FeatureAgent",
+            action="feature_analysis",
+            reasoning=response["reasoning"],
+            impact=response["impact"],
+            confidence=response["confidence"]
+        )
+
+        return {
+            **state,
+            "feature_results": response["result"],
+            "reasoning_log": state.get("reasoning_log", []) + [reasoning_log],
+            "current_step": "feature_analysis",
+            "completed_steps": state.get("completed_steps", []) + ["feature_analysis"],
+            "pending_approval": True,
+            "approval_context": {
+                "step": "feature_analysis",
+                "agent": "FeatureAgent",
+                "recommendations": response["recommendations"],
+                "reasoning": response["reasoning"],
+                "impact": response["impact"],
+                "confidence": response["confidence"]
+            },
+            "updated_at": get_timestamp()
+        }
+
+    def _statistical_analysis_node(self, state: EDAState) -> Dict[str, Any]:
+        """Statistical analysis node - runs StatAgent"""
+
+        # Get dataset handle
+        dataset_handle = DatasetHandle(state["dataset_path"])
+
+        # Prepare context from previous steps
+        context = {
+            "profile_results": state.get("profile_results"),
+            "quality_results": state.get("quality_results"),
+            "feature_results": state.get("feature_results")
+        }
+
+        # Run stat agent
+        response = self.stat_agent.analyze(dataset_handle, context)
+
+        # Update state
+        reasoning_log = create_reasoning_log(
+            agent="StatAgent",
+            action="statistical_analysis",
+            reasoning=response["reasoning"],
+            impact=response["impact"],
+            confidence=response["confidence"]
+        )
+
+        return {
+            **state,
+            "stat_results": response["result"],
+            "reasoning_log": state.get("reasoning_log", []) + [reasoning_log],
+            "current_step": "statistical_analysis",
+            "completed_steps": state.get("completed_steps", []) + ["statistical_analysis"],
+            "pending_approval": True,
+            "approval_context": {
+                "step": "statistical_analysis",
+                "agent": "StatAgent",
+                "recommendations": response["recommendations"],
+                "reasoning": response["reasoning"],
+                "impact": response["impact"],
+                "confidence": response["confidence"]
             },
             "updated_at": get_timestamp()
         }
