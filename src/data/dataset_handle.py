@@ -100,11 +100,12 @@ class DatasetHandle:
         other_cols = []
 
         for col, dtype in self.dtypes.items():
-            if 'int' in dtype or 'float' in dtype:
+            dtype_lower = dtype.lower()
+            if 'int' in dtype_lower or 'float' in dtype_lower:
                 numeric_cols.append(col)
-            elif 'object' in dtype or 'string' in dtype or 'category' in dtype:
+            elif any(x in dtype_lower for x in ['object', 'string', 'str', 'category']):
                 categorical_cols.append(col)
-            elif 'datetime' in dtype:
+            elif 'datetime' in dtype_lower:
                 datetime_cols.append(col)
             else:
                 other_cols.append(col)

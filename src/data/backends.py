@@ -60,6 +60,34 @@ class InMemoryBackend(DataBackend):
     def __init__(self, path: str):
         self.path = path
         self.df = pd.read_csv(path)
+        self._parse_datetime_columns()
+
+    def _parse_datetime_columns(self):
+        """Automatically detect and parse datetime columns"""
+        for col in self.df.columns:
+            # Skip if already datetime
+            if pd.api.types.is_datetime64_any_dtype(self.df[col]):
+                continue
+
+            # Check if column name suggests it's a date
+            col_lower = col.lower()
+            date_keywords = ['date', 'time', 'timestamp', 'datetime', 'day', 'month', 'year']
+            has_date_keyword = any(keyword in col_lower for keyword in date_keywords)
+
+            # Only try parsing if column is string/object type
+            if self.df[col].dtype == 'object' or str(self.df[col].dtype) == 'str':
+                # If column name suggests date, try parsing
+                if has_date_keyword:
+                    try:
+                        # Try to parse with dayfirst=True for dd-mm-yyyy format (common in international data)
+                        parsed = pd.to_datetime(self.df[col], errors='coerce', dayfirst=True)
+                        # If more than 50% of non-null values parsed successfully, convert
+                        non_null_count = self.df[col].notna().sum()
+                        parsed_count = parsed.notna().sum()
+                        if non_null_count > 0 and (parsed_count / non_null_count) > 0.5:
+                            self.df[col] = parsed
+                    except Exception:
+                        pass
 
     def get_shape(self) -> tuple[int, int]:
         return self.df.shape
@@ -123,7 +151,36 @@ class SampledBackend(DataBackend):
             SELECT * FROM {self.table_name}
             USING SAMPLE {sample_size} ROWS
         """
-        return self.conn.execute(query).df()
+        df = self.conn.execute(query).df()
+        self._parse_datetime_columns(df)
+        return df
+
+    def _parse_datetime_columns(self, df: pd.DataFrame):
+        """Automatically detect and parse datetime columns"""
+        for col in df.columns:
+            # Skip if already datetime
+            if pd.api.types.is_datetime64_any_dtype(df[col]):
+                continue
+
+            # Check if column name suggests it's a date
+            col_lower = col.lower()
+            date_keywords = ['date', 'time', 'timestamp', 'datetime', 'day', 'month', 'year']
+            has_date_keyword = any(keyword in col_lower for keyword in date_keywords)
+
+            # Only try parsing if column is string/object type
+            if df[col].dtype == 'object' or str(df[col].dtype) == 'str':
+                # If column name suggests date, try parsing
+                if has_date_keyword:
+                    try:
+                        # Try to parse with dayfirst=True for dd-mm-yyyy format (common in international data)
+                        parsed = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+                        # If more than 50% of non-null values parsed successfully, convert
+                        non_null_count = df[col].notna().sum()
+                        parsed_count = parsed.notna().sum()
+                        if non_null_count > 0 and (parsed_count / non_null_count) > 0.5:
+                            df[col] = parsed
+                    except Exception:
+                        pass
 
     def get_shape(self) -> tuple[int, int]:
         return self._shape
