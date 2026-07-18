@@ -15,6 +15,12 @@ from .quality_viz import (
     display_quality_visualizations
 )
 
+from .comparison_view import (
+    ComparisonView,
+    TransformationComparison,
+    display_transformation_comparison
+)
+
 __all__ = [
     "WorkflowStep",
     "WorkflowProgressTracker",
@@ -22,5 +28,8 @@ __all__ = [
     "AGENT_STEPS",
     "PROGRESS_TRACKER_CSS",
     "QualityVisualizer",
-    "display_quality_visualizations"
+    "display_quality_visualizations",
+    "ComparisonView",
+    "TransformationComparison",
+    "display_transformation_comparison"
 ]

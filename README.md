@@ -72,14 +72,14 @@ streamlit run src/ui/app.py
 
 ## Recent UI/UX Enhancements
 
-### 🎯 Progress Tracking System
+### 🎯 Phase 1: Progress Tracking System
 - Visual workflow stepper showing all agent stages
 - Real-time status updates (pending → running → completed)
 - Individual step timing and ETA calculation
 - Color-coded status indicators with emojis
 - See `docs/PROGRESS_TRACKER.md` for details
 
-### 📊 Quality Visualization Dashboard
+### 📊 Phase 2: Quality Visualization Dashboard
 - Interactive charts for all data quality issues
 - Missing value heatmaps and bar charts
 - Outlier detection with box plots and scatter plots
@@ -87,7 +87,17 @@ streamlit run src/ui/app.py
 - Overall quality score dashboard
 - See `docs/QUALITY_VISUALIZATION.md` for details
 
+### 🔄 Phase 3: Before/After Transformation Comparison (NEW!)
+- Side-by-side data preview with color-coded changes
+- Delta metrics dashboard (Missing, Duplicates, Outliers)
+- Distribution comparison charts
+- Statistical comparison table
+- Impact analysis with severity indicators
+- Quick action buttons for previewing transformations
+- See `docs/BEFORE_AFTER_COMPARISON.md` for details
+
 ### 📚 Documentation
 - `docs/PROGRESS_TRACKER.md` - Progress indicator component guide
-- `docs/QUALITY_VISUALIZATION.md` - Quality visualization component guide  
+- `docs/QUALITY_VISUALIZATION.md` - Quality visualization component guide
+- `docs/BEFORE_AFTER_COMPARISON.md` - Before/After comparison guide
 - `docs/UI_UX_ENHANCEMENTS_SUMMARY.md` - Complete enhancement overview

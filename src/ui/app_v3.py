@@ -25,7 +25,8 @@ from src.ui.components import (
     WorkflowProgressTracker,
     PROGRESS_TRACKER_CSS,
     AGENT_STEPS,
-    display_quality_visualizations
+    display_quality_visualizations,
+    display_transformation_comparison
 )
 import os
 
@@ -918,7 +919,7 @@ def display_stat_results():
 
 
 def display_transform_results():
-    """Display transformation proposals"""
+    """Display transformation proposals with before/after comparison"""
     st.header("🔧 Transformation Proposals")
 
     result = st.session_state.analysis_results["transform"]
@@ -936,21 +937,148 @@ def display_transform_results():
     with col4:
         st.metric("Low Priority", data['low_priority'])
 
+    st.divider()
+
     # Group by priority
     transformations = data['transformations']
 
+    # Initialize session state for applied transformations
+    if "applied_transformations" not in st.session_state:
+        st.session_state.applied_transformations = []
+
+    if "transform_preview_df" not in st.session_state:
+        st.session_state.transform_preview_df = None
+
+    # Quick action buttons
+    col1, col2, col3 = st.columns([2, 2, 1])
+
+    with col1:
+        if st.button("🔍 Preview All High Priority", use_container_width=True, type="primary"):
+            high_priority = [t for t in transformations if t['priority'] == 'high']
+            if high_priority:
+                st.session_state.selected_transforms_for_preview = high_priority
+                st.rerun()
+
+    with col2:
+        if st.button("✅ Preview Selected", use_container_width=True, disabled=not st.session_state.get('selected_transforms_for_preview')):
+            # This will trigger the comparison view below
+            pass
+
+    with col3:
+        if st.button("🔄 Reset", use_container_width=True):
+            st.session_state.selected_transforms_for_preview = []
+            st.session_state.transform_preview_df = None
+            st.rerun()
+
+    st.divider()
+
+    # Show transformations by priority
     for priority in ['high', 'medium', 'low']:
         priority_transforms = [t for t in transformations if t['priority'] == priority]
 
         if priority_transforms:
             st.subheader(f"{priority.title()} Priority Transformations")
 
-            for transform in priority_transforms:
-                with st.expander(f"{transform['type']} - {transform['description'][:50]}..."):
-                    st.markdown(f"**Description:** {transform['description']}")
-                    st.markdown(f"**Reasoning:** {transform['reasoning']}")
-                    st.markdown(f"**Impact:** {transform['impact']}")
-                    st.markdown(f"**Type:** {transform['type']}")
+            for idx, transform in enumerate(priority_transforms):
+                col1, col2 = st.columns([4, 1])
+
+                with col1:
+                    with st.expander(f"{transform['type'].replace('_', ' ').title()} - {transform['description'][:60]}..."):
+                        st.markdown(f"**Description:** {transform['description']}")
+                        st.markdown(f"**Reasoning:** {transform['reasoning']}")
+                        st.markdown(f"**Impact:** {transform['impact']}")
+                        st.markdown(f"**Type:** {transform['type']}")
+
+                        # Show parameters if available
+                        if 'params' in transform:
+                            st.markdown("**Parameters:**")
+                            for key, value in transform['params'].items():
+                                st.markdown(f"  - {key}: `{value}`")
+
+                with col2:
+                    if st.button("👁️ Preview", key=f"preview_{priority}_{idx}"):
+                        st.session_state.selected_transforms_for_preview = [transform]
+                        st.rerun()
+
+    st.divider()
+
+    # Show before/after comparison if transformations are selected
+    if st.session_state.get('selected_transforms_for_preview'):
+        st.subheader("🔄 Before/After Comparison")
+
+        selected_transforms = st.session_state.selected_transforms_for_preview
+
+        # Create simulated transformed dataset
+        df_before = st.session_state.dataset_handle.sample(min(1000, st.session_state.dataset_handle.shape[0]))
+        df_after = df_before.copy()
+
+        # Apply transformations to create preview
+        transform_desc = []
+        for transform in selected_transforms:
+            transform_type = transform['type']
+            params = transform.get('params', {})
+
+            if transform_type == 'deduplication':
+                before_len = len(df_after)
+                df_after = df_after.drop_duplicates(keep=params.get('keep', 'first'))
+                transform_desc.append(f"Removed {before_len - len(df_after)} duplicate rows")
+
+            elif transform_type == 'missing_value_handling':
+                col = params.get('column')
+                strategy = params.get('strategy')
+
+                if col and col in df_after.columns:
+                    if strategy == 'drop_column':
+                        df_after = df_after.drop(columns=[col])
+                        transform_desc.append(f"Dropped column '{col}'")
+
+                    elif strategy == 'impute_median':
+                        median_val = df_after[col].median()
+                        missing_count = df_after[col].isnull().sum()
+                        df_after[col] = df_after[col].fillna(median_val)
+                        transform_desc.append(f"Filled {missing_count} missing values in '{col}' with median ({median_val:.2f})")
+
+                    elif strategy == 'impute_mode':
+                        mode_val = df_after[col].mode()[0] if not df_after[col].mode().empty else 'Unknown'
+                        missing_count = df_after[col].isnull().sum()
+                        df_after[col] = df_after[col].fillna(mode_val)
+                        transform_desc.append(f"Filled {missing_count} missing values in '{col}' with mode ('{mode_val}')")
+
+                    elif strategy == 'impute_constant':
+                        constant = params.get('value', 'Unknown')
+                        missing_count = df_after[col].isnull().sum()
+                        df_after[col] = df_after[col].fillna(constant)
+                        transform_desc.append(f"Filled {missing_count} missing values in '{col}' with constant ('{constant}')")
+
+            elif transform_type == 'outlier_handling':
+                col = params.get('column')
+                strategy = params.get('strategy', 'cap')
+
+                if col and col in df_after.columns:
+                    Q1 = df_after[col].quantile(0.25)
+                    Q3 = df_after[col].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower = Q1 - 1.5 * IQR
+                    upper = Q3 + 1.5 * IQR
+
+                    if strategy == 'cap':
+                        outliers_count = ((df_after[col] < lower) | (df_after[col] > upper)).sum()
+                        df_after[col] = df_after[col].clip(lower, upper)
+                        transform_desc.append(f"Capped {outliers_count} outliers in '{col}'")
+
+        # Display comparison
+        transformation_info = {
+            'description': ' | '.join(transform_desc) if transform_desc else 'Multiple transformations applied'
+        }
+
+        display_transformation_comparison(
+            df_before,
+            df_after,
+            transformation_info,
+            show_details=True
+        )
+
+    st.divider()
 
     # Explainability
     if st.session_state.get("show_reasoning", True):
