@@ -20,6 +20,12 @@ from src.agents import (
     VisualizationAgent, FeatureAgent, StatAgent
 )
 from src.utils.helpers import generate_id, get_timestamp
+from src.ui.components import (
+    create_workflow_tracker,
+    WorkflowProgressTracker,
+    PROGRESS_TRACKER_CSS,
+    AGENT_STEPS
+)
 import os
 
 # Page config
@@ -77,6 +83,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Add progress tracker CSS
+st.markdown(PROGRESS_TRACKER_CSS, unsafe_allow_html=True)
+
 # Initialize session state
 if "dataset_handle" not in st.session_state:
     st.session_state.dataset_handle = None
@@ -89,6 +98,9 @@ if "analysis_results" not in st.session_state:
 
 if "workflow_running" not in st.session_state:
     st.session_state.workflow_running = False
+
+if "workflow_tracker" not in st.session_state:
+    st.session_state.workflow_tracker = None
 
 
 def display_header():
@@ -207,100 +219,279 @@ def display_sidebar():
 
 
 def run_single_agent(agent_name: str):
-    """Run a single agent"""
-    with st.spinner(f"Running {agent_name}..."):
-        handle = st.session_state.dataset_handle
+    """Run a single agent with progress tracking"""
+    handle = st.session_state.dataset_handle
 
-        # Get context from previous results
-        context = {
-            "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
-            "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
-            "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
-        }
+    # Map agent name to step ID
+    agent_step_map = {
+        "ProfileAgent": "profile",
+        "QualityAgent": "quality",
+        "TransformAgent": "transform",
+        "VisualizationAgent": "visualization",
+        "FeatureAgent": "feature",
+        "StatAgent": "stat"
+    }
 
-        # Run agent
-        if agent_name == "ProfileAgent":
-            agent = ProfileAgent()
-            result = agent.analyze(handle)
-            st.session_state.analysis_results["profile"] = result
+    step_id = agent_step_map.get(agent_name)
 
-        elif agent_name == "QualityAgent":
-            agent = QualityAgent()
-            result = agent.analyze(handle, context)
-            st.session_state.analysis_results["quality"] = result
+    # Create a single-step tracker for this agent
+    if step_id and step_id in AGENT_STEPS:
+        step = AGENT_STEPS[step_id]
+        tracker = WorkflowProgressTracker(f"Running {agent_name}", [step])
+        st.session_state.workflow_tracker = tracker
 
-        elif agent_name == "TransformAgent":
-            agent = TransformAgent()
-            result = agent.analyze(handle, context)
-            st.session_state.analysis_results["transform"] = result
+        progress_container = st.empty()
 
-        elif agent_name == "VisualizationAgent":
-            agent = VisualizationAgent()
-            result = agent.analyze(handle, context)
-            st.session_state.analysis_results["visualization"] = result
+        # Start the step
+        step.start()
+        with progress_container.container():
+            tracker.render_compact()
 
-        elif agent_name == "FeatureAgent":
-            agent = FeatureAgent()
-            result = agent.analyze(handle, context)
-            st.session_state.analysis_results["feature"] = result
+        try:
+            # Get context from previous results
+            context = {
+                "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
+                "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+            }
 
-        elif agent_name == "StatAgent":
-            agent = StatAgent()
-            result = agent.analyze(handle, context)
-            st.session_state.analysis_results["stat"] = result
+            # Run agent
+            if agent_name == "ProfileAgent":
+                agent = ProfileAgent()
+                result = agent.analyze(handle)
+                st.session_state.analysis_results["profile"] = result
 
-    st.success(f"✅ {agent_name} completed!")
+            elif agent_name == "QualityAgent":
+                agent = QualityAgent()
+                result = agent.analyze(handle, context)
+                st.session_state.analysis_results["quality"] = result
+
+            elif agent_name == "TransformAgent":
+                agent = TransformAgent()
+                result = agent.analyze(handle, context)
+                st.session_state.analysis_results["transform"] = result
+
+            elif agent_name == "VisualizationAgent":
+                agent = VisualizationAgent()
+                result = agent.analyze(handle, context)
+                st.session_state.analysis_results["visualization"] = result
+
+            elif agent_name == "FeatureAgent":
+                agent = FeatureAgent()
+                result = agent.analyze(handle, context)
+                st.session_state.analysis_results["feature"] = result
+
+            elif agent_name == "StatAgent":
+                agent = StatAgent()
+                result = agent.analyze(handle, context)
+                st.session_state.analysis_results["stat"] = result
+
+            # Complete the step
+            step.complete()
+
+            with progress_container.container():
+                tracker.render_compact()
+
+            st.success(f"✅ {agent_name} completed in {step.duration:.1f}s!")
+
+        except Exception as e:
+            step.fail(str(e))
+            with progress_container.container():
+                tracker.render_compact()
+            st.error(f"❌ {agent_name} failed: {str(e)}")
+
     st.rerun()
 
 
 def run_complete_analysis():
-    """Run all agents in sequence"""
+    """Run all agents in sequence with progress tracking"""
     handle = st.session_state.dataset_handle
-    progress_bar = st.progress(0)
-    status_text = st.empty()
 
-    agents = [
-        ("ProfileAgent", ProfileAgent(), 1/6),
-        ("QualityAgent", QualityAgent(), 2/6),
-        ("VisualizationAgent", VisualizationAgent(), 3/6),
-        ("FeatureAgent", FeatureAgent(), 4/6),
-        ("StatAgent", StatAgent(), 5/6),
-        ("TransformAgent", TransformAgent(), 6/6)
+    # Create workflow tracker
+    tracker = create_workflow_tracker("complete_analysis")
+    st.session_state.workflow_tracker = tracker
+    st.session_state.workflow_running = True
+
+    # Create progress container
+    progress_container = st.empty()
+
+    # Agent configuration
+    agent_configs = [
+        ("profile", "ProfileAgent", ProfileAgent()),
+        ("quality", "QualityAgent", QualityAgent()),
+        ("visualization", "VisualizationAgent", VisualizationAgent()),
+        ("feature", "FeatureAgent", FeatureAgent()),
+        ("stat", "StatAgent", StatAgent()),
+        ("transform", "TransformAgent", TransformAgent())
     ]
 
-    for agent_name, agent, progress in agents:
-        status_text.text(f"Running {agent_name}...")
+    # Run each agent
+    for step_id, agent_name, agent in agent_configs:
+        # Find the step
+        step = next((s for s in tracker.steps if s.id == step_id), None)
+        if not step:
+            continue
 
-        # Get context
-        context = {
-            "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
-            "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
-            "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
-        }
+        # Start the step
+        step.start()
 
-        # Run agent
-        result = agent.analyze(handle, context)
+        # Render progress
+        with progress_container.container():
+            tracker.render()
 
-        # Store result
-        key = agent_name.lower().replace("agent", "")
-        st.session_state.analysis_results[key] = result
+        try:
+            # Get context
+            context = {
+                "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
+                "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+            }
 
-        progress_bar.progress(progress)
+            # Run agent
+            result = agent.analyze(handle, context)
 
-    status_text.text("✅ Complete analysis finished!")
-    st.success("🎉 All agents completed successfully!")
-    st.balloons()
+            # Store result
+            st.session_state.analysis_results[step_id] = result
+
+            # Complete the step
+            step.complete()
+
+        except Exception as e:
+            # Mark step as failed
+            step.fail(str(e))
+            st.error(f"❌ {agent_name} failed: {str(e)}")
+            break
+
+        # Update progress display
+        with progress_container.container():
+            tracker.render()
+
+    # Final render
+    with progress_container.container():
+        tracker.render()
+
+    # Check if all completed successfully
+    if tracker.completed_count == tracker.total_steps:
+        st.success("🎉 All agents completed successfully!")
+        st.balloons()
+
+    st.session_state.workflow_running = False
     st.rerun()
 
 
 def run_deep_dive_workflow():
-    """Deep dive analysis workflow"""
-    run_complete_analysis()
+    """Deep dive analysis workflow (without transform)"""
+    handle = st.session_state.dataset_handle
+
+    # Create workflow tracker for deep dive (no transform)
+    tracker = create_workflow_tracker("deep_dive")
+    st.session_state.workflow_tracker = tracker
+    st.session_state.workflow_running = True
+
+    progress_container = st.empty()
+
+    agent_configs = [
+        ("profile", "ProfileAgent", ProfileAgent()),
+        ("quality", "QualityAgent", QualityAgent()),
+        ("visualization", "VisualizationAgent", VisualizationAgent()),
+        ("feature", "FeatureAgent", FeatureAgent()),
+        ("stat", "StatAgent", StatAgent())
+    ]
+
+    for step_id, agent_name, agent in agent_configs:
+        step = next((s for s in tracker.steps if s.id == step_id), None)
+        if not step:
+            continue
+
+        step.start()
+        with progress_container.container():
+            tracker.render()
+
+        try:
+            context = {
+                "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
+                "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+            }
+
+            result = agent.analyze(handle, context)
+            st.session_state.analysis_results[step_id] = result
+            step.complete()
+
+        except Exception as e:
+            step.fail(str(e))
+            st.error(f"❌ {agent_name} failed: {str(e)}")
+            break
+
+        with progress_container.container():
+            tracker.render()
+
+    with progress_container.container():
+        tracker.render()
+
+    if tracker.completed_count == tracker.total_steps:
+        st.success("🎉 Deep dive analysis completed!")
+        st.balloons()
+
+    st.session_state.workflow_running = False
+    st.rerun()
 
 
 def run_ml_prep_workflow():
-    """ML preparation workflow"""
-    run_complete_analysis()
+    """ML preparation workflow (profile, quality, feature, transform)"""
+    handle = st.session_state.dataset_handle
+
+    # Create workflow tracker for ML prep
+    tracker = create_workflow_tracker("ml_prep")
+    st.session_state.workflow_tracker = tracker
+    st.session_state.workflow_running = True
+
+    progress_container = st.empty()
+
+    agent_configs = [
+        ("profile", "ProfileAgent", ProfileAgent()),
+        ("quality", "QualityAgent", QualityAgent()),
+        ("feature", "FeatureAgent", FeatureAgent()),
+        ("transform", "TransformAgent", TransformAgent())
+    ]
+
+    for step_id, agent_name, agent in agent_configs:
+        step = next((s for s in tracker.steps if s.id == step_id), None)
+        if not step:
+            continue
+
+        step.start()
+        with progress_container.container():
+            tracker.render()
+
+        try:
+            context = {
+                "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
+                "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+            }
+
+            result = agent.analyze(handle, context)
+            st.session_state.analysis_results[step_id] = result
+            step.complete()
+
+        except Exception as e:
+            step.fail(str(e))
+            st.error(f"❌ {agent_name} failed: {str(e)}")
+            break
+
+        with progress_container.container():
+            tracker.render()
+
+    with progress_container.container():
+        tracker.render()
+
+    if tracker.completed_count == tracker.total_steps:
+        st.success("🎉 ML preparation completed!")
+        st.balloons()
+
+    st.session_state.workflow_running = False
+    st.rerun()
 
 
 def display_results():
@@ -761,6 +952,14 @@ def main():
     """Main application"""
     display_header()
     display_sidebar()
+
+    # Show progress tracker if workflow is running or just completed
+    if st.session_state.workflow_tracker:
+        st.markdown("---")
+        with st.container():
+            st.session_state.workflow_tracker.render_compact()
+        st.markdown("---")
+
     display_results()
 
     # Footer
