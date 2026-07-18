@@ -24,7 +24,8 @@ from src.ui.components import (
     create_workflow_tracker,
     WorkflowProgressTracker,
     PROGRESS_TRACKER_CSS,
-    AGENT_STEPS
+    AGENT_STEPS,
+    display_quality_visualizations
 )
 import os
 
@@ -658,7 +659,7 @@ def display_profile_results():
 
 
 def display_quality_results():
-    """Display quality agent results"""
+    """Display quality agent results with visualizations"""
     st.header("✅ Data Quality Assessment")
 
     result = st.session_state.analysis_results["quality"]
@@ -684,19 +685,32 @@ def display_quality_results():
         type_issues = data['data_types']['type_issue_count']
         st.metric("Type Issues", type_issues)
 
-    # Detailed outlier info
-    if data['outliers']['has_outliers']:
-        st.subheader("📊 Outlier Details")
-        outlier_data = []
-        for col, details in list(data['outliers']['outlier_details'].items())[:5]:
-            outlier_data.append({
-                "Column": col,
-                "IQR Outliers": details['iqr_outliers'],
-                "Percentage": f"{details['iqr_percentage']:.1f}%",
-                "Range": f"[{details['min']:.2f}, {details['max']:.2f}]"
-            })
+    st.divider()
 
-        st.dataframe(pd.DataFrame(outlier_data), use_container_width=True)
+    # Interactive Quality Visualizations
+    try:
+        display_quality_visualizations(result, st.session_state.dataset_handle)
+    except Exception as e:
+        st.warning(f"Could not generate quality visualizations: {str(e)}")
+
+        # Fallback to text-based display
+        st.subheader("📊 Detailed Analysis")
+
+        # Detailed outlier info
+        if data['outliers']['has_outliers']:
+            st.subheader("⚠️ Outlier Details")
+            outlier_data = []
+            for col, details in list(data['outliers']['outlier_details'].items())[:5]:
+                outlier_data.append({
+                    "Column": col,
+                    "IQR Outliers": details['iqr_outliers'],
+                    "Percentage": f"{details['iqr_percentage']:.1f}%",
+                    "Range": f"[{details['min']:.2f}, {details['max']:.2f}]"
+                })
+
+            st.dataframe(pd.DataFrame(outlier_data), use_container_width=True)
+
+    st.divider()
 
     # Explainability
     if st.session_state.get("show_reasoning", True):

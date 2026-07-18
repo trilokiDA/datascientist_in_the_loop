@@ -10,6 +10,8 @@ An intelligent EDA (Exploratory Data Analysis) pipeline powered by LangGraph, Gr
 - 💾 **Persistence**: LangGraph checkpoints allow pause/resume workflows
 - 📊 **Hybrid Scale**: Handles small datasets in-memory, large datasets with sampling
 - 🎯 **Customizable Workflows**: Pre-defined pipelines + manual step injection
+- ⏱️ **Progress Tracking**: Real-time visual workflow progress with ETA (NEW!)
+- 📈 **Quality Visualizations**: Interactive charts for missing values, outliers, and duplicates (NEW!)
 
 ## Architecture
 
@@ -67,3 +69,25 @@ streamlit run src/ui/app.py
 - **Pandas/DuckDB**: Data processing
 - **Plotly/Seaborn**: Visualizations
 - **SQLite**: Persistence layer
+
+## Recent UI/UX Enhancements
+
+### 🎯 Progress Tracking System
+- Visual workflow stepper showing all agent stages
+- Real-time status updates (pending → running → completed)
+- Individual step timing and ETA calculation
+- Color-coded status indicators with emojis
+- See `docs/PROGRESS_TRACKER.md` for details
+
+### 📊 Quality Visualization Dashboard
+- Interactive charts for all data quality issues
+- Missing value heatmaps and bar charts
+- Outlier detection with box plots and scatter plots
+- Duplicate analysis with gauge charts
+- Overall quality score dashboard
+- See `docs/QUALITY_VISUALIZATION.md` for details
+
+### 📚 Documentation
+- `docs/PROGRESS_TRACKER.md` - Progress indicator component guide
+- `docs/QUALITY_VISUALIZATION.md` - Quality visualization component guide  
+- `docs/UI_UX_ENHANCEMENTS_SUMMARY.md` - Complete enhancement overview
