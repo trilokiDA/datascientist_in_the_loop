@@ -10,6 +10,7 @@ import pandas as pd
 from PIL import Image
 import plotly.express as px
 import plotly.graph_objects as go
+from datetime import datetime
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -20,6 +21,7 @@ from src.agents import (
     VisualizationAgent, FeatureAgent, StatAgent
 )
 from src.utils.helpers import generate_id, get_timestamp
+from src.utils.export import ExportManager
 from src.ui.components import (
     create_workflow_tracker,
     WorkflowProgressTracker,
@@ -103,6 +105,9 @@ if "workflow_running" not in st.session_state:
 
 if "workflow_tracker" not in st.session_state:
     st.session_state.workflow_tracker = None
+
+if "export_manager" not in st.session_state:
+    st.session_state.export_manager = ExportManager()
 
 
 def display_header():
@@ -510,7 +515,8 @@ def display_results():
         "🎨 Visualizations",
         "🔍 Features",
         "📉 Statistics",
-        "🔧 Transformations"
+        "🔧 Transformations",
+        "💾 Export"
     ])
 
     with tabs[0]:
@@ -551,6 +557,9 @@ def display_results():
             display_transform_results()
         else:
             st.info("Run TransformAgent to see results")
+
+    with tabs[7]:
+        display_export_options()
 
 
 def display_overview():
@@ -1088,6 +1097,288 @@ def display_transform_results():
             st.markdown("**Recommendations:**")
             for rec in result['recommendations']:
                 st.markdown(f"- {rec}")
+
+
+def display_export_options():
+    """Display export functionality"""
+    st.header("💾 Export Analysis Results")
+
+    if not st.session_state.analysis_results:
+        st.warning("⚠️ Run analysis first to export results")
+        return
+
+    st.markdown("""
+    Export your analysis results in various formats to share with stakeholders
+    or for further processing.
+    """)
+
+    st.divider()
+
+    # Export format selection
+    st.subheader("🎯 Select Export Formats")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        export_html = st.checkbox(
+            "📄 HTML Report",
+            value=True,
+            help="Interactive HTML report with all visualizations and analysis"
+        )
+
+    with col2:
+        export_json = st.checkbox(
+            "📊 JSON Data",
+            value=True,
+            help="Raw analysis results in JSON format for programmatic access"
+        )
+
+    with col3:
+        export_csv = st.checkbox(
+            "📋 Transformed CSV",
+            value=False,
+            help="Export transformed dataset (requires TransformAgent results)",
+            disabled="transform" not in st.session_state.analysis_results
+        )
+
+    st.divider()
+
+    # Export preview
+    st.subheader("📦 Export Preview")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown("**Analysis Results:**")
+        completed_agents = list(st.session_state.analysis_results.keys())
+        for agent in completed_agents:
+            agent_name = agent.replace('_', ' ').title() + "Agent"
+            st.markdown(f"- ✅ {agent_name}")
+
+    with col2:
+        st.markdown("**Dataset Information:**")
+        if st.session_state.dataset_handle:
+            info = st.session_state.dataset_handle.get_info()
+            # Extract filename from path
+            dataset_name = Path(info['path']).name if 'path' in info else 'Unknown'
+            st.markdown(f"- **Name:** {dataset_name}")
+            st.markdown(f"- **Rows:** {info['rows']:,}")
+            st.markdown(f"- **Columns:** {info['columns']}")
+            st.markdown(f"- **Size:** {info['file_size_formatted']}")
+
+    st.divider()
+
+    # Export action
+    col1, col2, col3 = st.columns([2, 1, 1])
+
+    with col1:
+        export_name = st.text_input(
+            "Custom Export Name (optional)",
+            placeholder="my_analysis",
+            help="Leave blank for auto-generated timestamp name"
+        )
+
+    with col2:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🚀 Export Now", type="primary", use_container_width=True):
+            perform_export(export_html, export_json, export_csv, export_name)
+
+    with col3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("📂 View Exports", use_container_width=True):
+            st.session_state.show_exports_list = True
+            st.rerun()
+
+    # Show export list if requested
+    if st.session_state.get("show_exports_list", False):
+        st.divider()
+        display_exports_list()
+
+
+def perform_export(
+    export_html: bool,
+    export_json: bool,
+    export_csv: bool,
+    custom_name: str
+):
+    """Perform the export operation"""
+
+    formats = []
+    if export_html:
+        formats.append('html')
+    if export_json:
+        formats.append('json')
+    if export_csv and 'transform' in st.session_state.analysis_results:
+        formats.append('csv')
+
+    if not formats:
+        st.warning("⚠️ Please select at least one export format")
+        return
+
+    # Get dataset info
+    dataset_info = {}
+    if st.session_state.dataset_handle:
+        info = st.session_state.dataset_handle.get_info()
+        # Extract filename from path
+        dataset_name = Path(info['path']).name if 'path' in info else 'Unknown'
+        dataset_info = {
+            'name': dataset_name,
+            'rows': info['rows'],
+            'columns': info['columns'],
+            'file_size_formatted': info['file_size_formatted']
+        }
+
+    with st.spinner("🔄 Exporting analysis results..."):
+        try:
+            # Use custom name if provided
+            session_prefix = f"{custom_name}_" if custom_name else None
+
+            exported_files = st.session_state.export_manager.export_all(
+                st.session_state.analysis_results,
+                dataset_info,
+                formats,
+                session_id=session_prefix
+            )
+
+            # Display success with download buttons
+            st.success("✅ Export completed successfully!")
+
+            st.markdown("### 📥 Download Files")
+
+            for format_type, file_path in exported_files.items():
+                col1, col2 = st.columns([3, 1])
+
+                with col1:
+                    st.markdown(f"**{format_type.upper()}:** `{Path(file_path).name}`")
+
+                with col2:
+                    # Read file for download
+                    with open(file_path, 'rb') as f:
+                        file_data = f.read()
+
+                    mime_types = {
+                        'html': 'text/html',
+                        'json': 'application/json',
+                        'csv': 'text/csv'
+                    }
+
+                    st.download_button(
+                        label="⬇️ Download",
+                        data=file_data,
+                        file_name=Path(file_path).name,
+                        mime=mime_types.get(format_type, 'application/octet-stream'),
+                        key=f"download_{format_type}"
+                    )
+
+            # Show file locations
+            with st.expander("📂 File Locations"):
+                for format_type, file_path in exported_files.items():
+                    st.code(file_path)
+
+        except Exception as e:
+            st.error(f"❌ Export failed: {str(e)}")
+            st.exception(e)
+
+
+def display_exports_list():
+    """Display list of previously exported files"""
+    st.subheader("📂 Previously Exported Files")
+
+    export_dir = Path("data/exports")
+
+    if not export_dir.exists():
+        st.info("No exports found")
+        return
+
+    # Get all export files
+    html_files = list(export_dir.glob("*.html"))
+    json_files = list(export_dir.glob("*.json"))
+    csv_files = list(export_dir.glob("*.csv"))
+
+    if not html_files and not json_files and not csv_files:
+        st.info("No exports found")
+        return
+
+    # Display by type
+    tab1, tab2, tab3 = st.tabs(["HTML Reports", "JSON Data", "CSV Files"])
+
+    with tab1:
+        if html_files:
+            for file_path in sorted(html_files, key=lambda x: x.stat().st_mtime, reverse=True)[:10]:
+                col1, col2, col3 = st.columns([2, 1, 1])
+
+                with col1:
+                    st.markdown(f"**{file_path.name}**")
+                    modified = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    st.caption(f"Modified: {modified.strftime('%Y-%m-%d %H:%M:%S')}")
+
+                with col2:
+                    size_kb = file_path.stat().st_size / 1024
+                    st.caption(f"Size: {size_kb:.1f} KB")
+
+                with col3:
+                    with open(file_path, 'rb') as f:
+                        st.download_button(
+                            label="⬇️ Download",
+                            data=f.read(),
+                            file_name=file_path.name,
+                            mime='text/html',
+                            key=f"dl_html_{file_path.name}"
+                        )
+        else:
+            st.info("No HTML reports found")
+
+    with tab2:
+        if json_files:
+            for file_path in sorted(json_files, key=lambda x: x.stat().st_mtime, reverse=True)[:10]:
+                col1, col2, col3 = st.columns([2, 1, 1])
+
+                with col1:
+                    st.markdown(f"**{file_path.name}**")
+                    modified = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    st.caption(f"Modified: {modified.strftime('%Y-%m-%d %H:%M:%S')}")
+
+                with col2:
+                    size_kb = file_path.stat().st_size / 1024
+                    st.caption(f"Size: {size_kb:.1f} KB")
+
+                with col3:
+                    with open(file_path, 'rb') as f:
+                        st.download_button(
+                            label="⬇️ Download",
+                            data=f.read(),
+                            file_name=file_path.name,
+                            mime='application/json',
+                            key=f"dl_json_{file_path.name}"
+                        )
+        else:
+            st.info("No JSON files found")
+
+    with tab3:
+        if csv_files:
+            for file_path in sorted(csv_files, key=lambda x: x.stat().st_mtime, reverse=True)[:10]:
+                col1, col2, col3 = st.columns([2, 1, 1])
+
+                with col1:
+                    st.markdown(f"**{file_path.name}**")
+                    modified = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    st.caption(f"Modified: {modified.strftime('%Y-%m-%d %H:%M:%S')}")
+
+                with col2:
+                    size_kb = file_path.stat().st_size / 1024
+                    st.caption(f"Size: {size_kb:.1f} KB")
+
+                with col3:
+                    with open(file_path, 'rb') as f:
+                        st.download_button(
+                            label="⬇️ Download",
+                            data=f.read(),
+                            file_name=file_path.name,
+                            mime='text/csv',
+                            key=f"dl_csv_{file_path.name}"
+                        )
+        else:
+            st.info("No CSV files found")
 
 
 def main():

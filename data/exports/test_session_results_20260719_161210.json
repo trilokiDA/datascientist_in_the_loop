@@ -1,0 +1,83 @@
+{
+  "metadata": {
+    "export_timestamp": "2026-07-19T16:12:10.319112",
+    "dataset_info": {
+      "name": "test_dataset.csv",
+      "rows": 1000,
+      "columns": 10,
+      "file_size_formatted": "50 KB"
+    }
+  },
+  "analysis_results": {
+    "profile": {
+      "confidence": 0.95,
+      "reasoning": "Dataset profiled successfully with comprehensive statistics",
+      "impact": "Provides foundational understanding of data structure",
+      "recommendations": [
+        "Handle missing values in key columns",
+        "Consider encoding categorical variables"
+      ],
+      "result": {
+        "basic_info": {
+          "rows": 1000,
+          "columns": 10,
+          "file_size": "50 KB",
+          "memory_usage": "100 KB"
+        },
+        "column_types": {
+          "numeric": [
+            "age",
+            "salary",
+            "score"
+          ],
+          "categorical": [
+            "category",
+            "status"
+          ],
+          "datetime": [
+            "date"
+          ]
+        },
+        "missing_info": {
+          "age": {
+            "count": 5,
+            "percentage": 0.5
+          }
+        }
+      }
+    },
+    "quality": {
+      "confidence": 0.92,
+      "reasoning": "Quality assessment completed with detailed anomaly detection",
+      "impact": "Identifies data quality issues requiring attention",
+      "recommendations": [
+        "Remove duplicate rows",
+        "Handle outliers in numeric columns"
+      ],
+      "result": {
+        "duplicates": {
+          "duplicate_rows": 10,
+          "duplicate_percentage": 1.0
+        },
+        "outliers": {
+          "has_outliers": true,
+          "columns_with_outliers": 2,
+          "outlier_details": {
+            "salary": {
+              "iqr_outliers": 15,
+              "iqr_percentage": 1.5,
+              "min": 20000,
+              "max": 200000
+            }
+          }
+        },
+        "inconsistencies": {
+          "inconsistency_count": 3
+        },
+        "data_types": {
+          "type_issue_count": 1
+        }
+      }
+    }
+  }
+}
