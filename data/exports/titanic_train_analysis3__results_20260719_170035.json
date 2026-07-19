@@ -1,0 +1,1351 @@
+{
+  "metadata": {
+    "export_timestamp": "2026-07-19T17:00:35.034682",
+    "dataset_info": {
+      "name": "titanic_train.csv",
+      "rows": 891,
+      "columns": 12,
+      "file_size_formatted": "59.76 KB"
+    }
+  },
+  "analysis_results": {
+    "profile": {
+      "result": {
+        "basic_info": {
+          "rows": 891,
+          "columns": 12,
+          "file_size": "59.76 KB",
+          "mode": "in_memory"
+        },
+        "column_types": {
+          "numeric": [
+            "PassengerId",
+            "Survived",
+            "Pclass",
+            "Age",
+            "SibSp",
+            "Parch",
+            "Fare"
+          ],
+          "categorical": [
+            "Name",
+            "Sex",
+            "Ticket",
+            "Cabin",
+            "Embarked"
+          ],
+          "datetime": [],
+          "other": []
+        },
+        "missing_info": {
+          "PassengerId": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Survived": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Pclass": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Name": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Sex": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Age": {
+            "count": 177,
+            "percentage": 19.865319865319865
+          },
+          "SibSp": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Parch": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Ticket": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Fare": {
+            "count": 0,
+            "percentage": 0.0
+          },
+          "Cabin": {
+            "count": 687,
+            "percentage": 77.10437710437711
+          },
+          "Embarked": {
+            "count": 2,
+            "percentage": 0.22446689113355783
+          }
+        },
+        "cardinality_info": {
+          "PassengerId": {
+            "unique_count": 891,
+            "unique_percentage": 100.0,
+            "is_high_cardinality": true
+          },
+          "Survived": {
+            "unique_count": 2,
+            "unique_percentage": 0.22446689113355783,
+            "is_high_cardinality": false
+          },
+          "Pclass": {
+            "unique_count": 3,
+            "unique_percentage": 0.33670033670033667,
+            "is_high_cardinality": false
+          },
+          "Name": {
+            "unique_count": 891,
+            "unique_percentage": 100.0,
+            "is_high_cardinality": true
+          },
+          "Sex": {
+            "unique_count": 2,
+            "unique_percentage": 0.22446689113355783,
+            "is_high_cardinality": false
+          },
+          "Age": {
+            "unique_count": 88,
+            "unique_percentage": 9.876543209876543,
+            "is_high_cardinality": false
+          },
+          "SibSp": {
+            "unique_count": 7,
+            "unique_percentage": 0.7856341189674524,
+            "is_high_cardinality": false
+          },
+          "Parch": {
+            "unique_count": 7,
+            "unique_percentage": 0.7856341189674524,
+            "is_high_cardinality": false
+          },
+          "Ticket": {
+            "unique_count": 681,
+            "unique_percentage": 76.43097643097643,
+            "is_high_cardinality": false
+          },
+          "Fare": {
+            "unique_count": 248,
+            "unique_percentage": 27.83389450056117,
+            "is_high_cardinality": false
+          },
+          "Cabin": {
+            "unique_count": 147,
+            "unique_percentage": 16.4983164983165,
+            "is_high_cardinality": false
+          },
+          "Embarked": {
+            "unique_count": 3,
+            "unique_percentage": 0.33670033670033667,
+            "is_high_cardinality": false
+          }
+        },
+        "issues": {
+          "high_missing_cols": [
+            "Cabin"
+          ],
+          "high_cardinality_cols": [
+            "PassengerId",
+            "Name"
+          ]
+        }
+      },
+      "reasoning": "I performed this profiling to identify potential data quality issues, challenges for modeling and analysis, and columns that may require special treatment. The methodology used involved analyzing the dataset's structure, including the number of rows and columns, data types, and detecting issues such as missing values and high cardinality columns. The results show that the dataset has a mix of numeric and categorical columns, with no datetime columns. The 'Cabin' column has a high percentage of missing values, which may indicate a data quality issue. The 'PassengerId' and 'Name' columns have high cardinality, suggesting that they may not be useful for modeling or analysis.",
+      "impact": "The profile reveals that the dataset has some data quality issues, particularly with the 'Cabin' column, which has a high percentage of missing values. This may impact the accuracy of models or analysis that rely on this column. The high cardinality of the 'PassengerId' and 'Name' columns may also pose challenges for modeling and analysis, as these columns may not provide meaningful insights. The dataset appears to be relatively small, with 891 rows, which may limit the complexity of models that can be trained on it. Overall, the dataset health assessment is fair, with some issues that need attention before proceeding with analysis or modeling.",
+      "recommendations": [
+        "Impute or remove the 'Cabin' column to address the high percentage of missing values",
+        "Consider dropping the 'PassengerId' and 'Name' columns due to their high cardinality and potential lack of usefulness for modeling or analysis",
+        "Explore data transformation techniques, such as encoding categorical variables, to prepare the data for modeling or analysis",
+        "Verify the data collection process to ensure that the 'Cabin' column is properly populated in the future",
+        "Consider collecting additional data to increase the size of the dataset and improve the accuracy of models or analysis"
+      ],
+      "confidence": 0.95
+    },
+    "quality": {
+      "result": {
+        "sample_size": 891,
+        "total_rows": 891,
+        "duplicates": {
+          "duplicate_rows": 0,
+          "estimated_total_duplicates": 0,
+          "duplicate_percentage": 0.0,
+          "has_duplicates": false
+        },
+        "outliers": {
+          "columns_with_outliers": 4,
+          "outlier_details": {
+            "Age": {
+              "iqr_outliers": 11,
+              "iqr_percentage": 1.2345679012345678,
+              "z_score_outliers": 2,
+              "z_score_percentage": 0.22446689113355783,
+              "lower_bound": -6.6875,
+              "upper_bound": 64.8125,
+              "min": 0.42,
+              "max": 80.0
+            },
+            "SibSp": {
+              "iqr_outliers": 46,
+              "iqr_percentage": 5.16273849607183,
+              "z_score_outliers": 30,
+              "z_score_percentage": 3.3670033670033668,
+              "lower_bound": -1.5,
+              "upper_bound": 2.5,
+              "min": 0.0,
+              "max": 8.0
+            },
+            "Parch": {
+              "iqr_outliers": 213,
+              "iqr_percentage": 23.905723905723907,
+              "z_score_outliers": 15,
+              "z_score_percentage": 1.6835016835016834,
+              "lower_bound": 0.0,
+              "upper_bound": 0.0,
+              "min": 0.0,
+              "max": 6.0
+            },
+            "Fare": {
+              "iqr_outliers": 116,
+              "iqr_percentage": 13.019079685746352,
+              "z_score_outliers": 20,
+              "z_score_percentage": 2.244668911335578,
+              "lower_bound": -26.724,
+              "upper_bound": 65.6344,
+              "min": 0.0,
+              "max": 512.3292
+            }
+          },
+          "has_outliers": true
+        },
+        "inconsistencies": {
+          "inconsistency_count": 2,
+          "inconsistencies": [
+            {
+              "column": "Ticket",
+              "type": "mixed_numeric_text",
+              "description": "Column contains both numeric and text values",
+              "affected_rows": 661
+            },
+            {
+              "column": "Cabin",
+              "type": "inconsistent_format",
+              "description": "Column has inconsistent value lengths",
+              "length_range": "1-15"
+            }
+          ],
+          "has_inconsistencies": true
+        },
+        "data_types": {
+          "type_issue_count": 0,
+          "type_issues": [],
+          "has_type_issues": false
+        },
+        "value_ranges": {
+          "range_issue_count": 0,
+          "range_issues": [],
+          "has_range_issues": false
+        }
+      },
+      "reasoning": "The quality assessment was performed to identify potential issues in the dataset that could impact downstream analysis. The methodology used included duplicate detection, outlier detection, data inconsistency checks, data type validation, and value range validation. The results show that while there are no duplicate rows, there are outliers in several columns, including Age, SibSp, Parch, and Fare. Additionally, data inconsistencies were found in the Ticket and Cabin columns, with mixed data types and inconsistent value lengths, respectively.",
+      "impact": "The presence of outliers in multiple columns, particularly Parch with 23.9% outliers, may significantly impact modeling and analysis, potentially leading to biased or inaccurate results. The data inconsistencies in the Ticket and Cabin columns may also cause issues with data processing and analysis, especially if these columns are used in modeling or filtering. Furthermore, the presence of high missing columns may also affect the overall quality of the dataset.",
+      "recommendations": [
+        "Investigate and address the outliers in the Parch column, as 23.9% is a significant percentage that may indicate data entry errors or other issues",
+        "Clean and standardize the Ticket and Cabin columns to ensure consistent data types and value lengths, which may involve converting the Ticket column to a single data type and truncating or padding the Cabin column values",
+        "Impute or remove missing values in the high missing column to prevent potential biases in analysis and modeling",
+        "Consider transforming or scaling the Fare column to reduce the impact of outliers, as 13.0% is a notable percentage",
+        "Review the data collection process to prevent similar issues in the future, such as implementing data validation checks or using more robust data entry methods"
+      ],
+      "confidence": 0.95
+    },
+    "feature": {
+      "result": {
+        "sample_size": 891,
+        "total_features": 12,
+        "correlations": {
+          "num_numeric_features": 7,
+          "has_correlations": true,
+          "strong_correlations": [],
+          "moderate_correlations": [
+            {
+              "feature1": "Pclass",
+              "feature2": "Fare",
+              "correlation": -0.5494996199439091,
+              "strength": "moderate"
+            },
+            {
+              "feature1": "SibSp",
+              "feature2": "Parch",
+              "correlation": 0.4148376986201563,
+              "strength": "moderate"
+            }
+          ],
+          "summary": "0 strong, 2 moderate"
+        },
+        "multicollinearity": {
+          "has_multicollinearity": false,
+          "multicollinear_pairs": [],
+          "severity": "none"
+        },
+        "feature_importance_hints": {
+          "total_hints": 3,
+          "hints": [
+            {
+              "type": "high_variance",
+              "features": [
+                "Parch",
+                "SibSp",
+                "Fare",
+                "Survived",
+                "PassengerId"
+              ],
+              "reasoning": "Features with high variance tend to be more informative for modeling",
+              "priority": "high"
+            },
+            {
+              "type": "good_categorical",
+              "features": [
+                "Sex",
+                "Embarked"
+              ],
+              "reasoning": "Categorical features with 2-20 unique values are typically good for modeling",
+              "priority": "medium"
+            },
+            {
+              "type": "potential_ids",
+              "features": [
+                "PassengerId",
+                "Name"
+              ],
+              "reasoning": "High cardinality columns are likely IDs with low predictive value",
+              "priority": "low",
+              "recommendation": "Consider removing these features"
+            }
+          ]
+        },
+        "feature_interactions": {
+          "has_interactions": true,
+          "multiplication_interactions": [
+            {
+              "feature1": "Survived",
+              "feature2": "Pclass",
+              "correlation": 0.3384810359610159,
+              "suggested_operation": "multiply",
+              "new_feature_name": "Survived_x_Pclass",
+              "reasoning": "Moderate correlation suggests these features might interact"
+            },
+            {
+              "feature1": "Pclass",
+              "feature2": "Age",
+              "correlation": 0.369226015315518,
+              "suggested_operation": "multiply",
+              "new_feature_name": "Pclass_x_Age",
+              "reasoning": "Moderate correlation suggests these features might interact"
+            },
+            {
+              "feature1": "Pclass",
+              "feature2": "Fare",
+              "correlation": 0.5494996199439091,
+              "suggested_operation": "multiply",
+              "new_feature_name": "Pclass_x_Fare",
+              "reasoning": "Moderate correlation suggests these features might interact"
+            },
+            {
+              "feature1": "Age",
+              "feature2": "SibSp",
+              "correlation": 0.30824675892365755,
+              "suggested_operation": "multiply",
+              "new_feature_name": "Age_x_SibSp",
+              "reasoning": "Moderate correlation suggests these features might interact"
+            },
+            {
+              "feature1": "SibSp",
+              "feature2": "Parch",
+              "correlation": 0.4148376986201563,
+              "suggested_operation": "multiply",
+              "new_feature_name": "SibSp_x_Parch",
+              "reasoning": "Moderate correlation suggests these features might interact"
+            }
+          ],
+          "ratio_interactions": [
+            {
+              "feature1": "PassengerId",
+              "feature2": "Pclass",
+              "suggested_operation": "divide",
+              "new_feature_name": "PassengerId_div_Pclass",
+              "reasoning": "Ratio might capture relative relationship"
+            },
+            {
+              "feature1": "PassengerId",
+              "feature2": "Age",
+              "suggested_operation": "divide",
+              "new_feature_name": "PassengerId_div_Age",
+              "reasoning": "Ratio might capture relative relationship"
+            },
+            {
+              "feature1": "Survived",
+              "feature2": "Pclass",
+              "suggested_operation": "divide",
+              "new_feature_name": "Survived_div_Pclass",
+              "reasoning": "Ratio might capture relative relationship"
+            }
+          ],
+          "total_suggestions": 10
+        },
+        "engineering_suggestions": {
+          "total_suggestions": 6,
+          "by_priority": {
+            "high": 0,
+            "medium": 5,
+            "low": 1
+          },
+          "suggestions": [
+            {
+              "type": "binning",
+              "feature": "PassengerId",
+              "strategy": "quantile_binning",
+              "parameters": {
+                "n_bins": 5
+              },
+              "reasoning": "Convert continuous variable to categorical bins for non-linear patterns",
+              "priority": "medium"
+            },
+            {
+              "type": "polynomial_features",
+              "features": [
+                "PassengerId",
+                "Survived",
+                "Pclass"
+              ],
+              "degree": 2,
+              "reasoning": "Create squared and interaction terms to capture non-linear relationships",
+              "priority": "low"
+            },
+            {
+              "type": "target_encoding",
+              "feature": "Name",
+              "unique_values": 891,
+              "reasoning": "High cardinality (891 categories) - target encoding better than one-hot",
+              "priority": "medium"
+            },
+            {
+              "type": "target_encoding",
+              "feature": "Ticket",
+              "unique_values": 681,
+              "reasoning": "High cardinality (681 categories) - target encoding better than one-hot",
+              "priority": "medium"
+            },
+            {
+              "type": "target_encoding",
+              "feature": "Cabin",
+              "unique_values": 147,
+              "reasoning": "High cardinality (147 categories) - target encoding better than one-hot",
+              "priority": "medium"
+            },
+            {
+              "type": "aggregation",
+              "group_by": [
+                "Name",
+                "Sex"
+              ],
+              "aggregate_features": [
+                "PassengerId",
+                "Survived",
+                "Pclass"
+              ],
+              "operations": [
+                "mean",
+                "sum",
+                "std",
+                "count"
+              ],
+              "reasoning": "Create group-level statistics for categorical segments",
+              "priority": "medium"
+            }
+          ]
+        }
+      },
+      "reasoning": "The feature analysis reveals a dataset with 12 features and 891 samples, where no strong correlations (|r| > 0.7) were found among the 7 numeric features. However, 2 moderate correlations (|r| > 0.4) were identified, suggesting some level of relationship between these features. The absence of multicollinearity issues is a positive sign, indicating that the features are relatively independent. The feature importance hints highlight 5 high-priority features with high variance, which could be crucial in modeling. The presence of feature interactions, including multiplication and ratio interactions, provides opportunities for engineering new features.",
+      "impact": "These feature insights mean that the model can leverage the moderate correlations and feature interactions to improve prediction performance. The high-variance features can be prioritized for modeling, while the good categorical features can provide additional information. The absence of multicollinearity issues reduces the risk of overfitting. However, the presence of potential ID features (low priority) may introduce data leakage risks if not handled properly.",
+      "recommendations": [
+        "Prioritize the 5 high-variance features for modeling and explore transformations to enhance their predictive power",
+        "Investigate the 2 moderate correlations and consider creating new features that capture their interactions",
+        "Explore the 5 multiplication interactions and 3 ratio interactions to engineer new features that can improve model performance",
+        "Consider dimensionality reduction techniques to reduce the impact of low-priority features and prevent overfitting",
+        "Monitor the performance of the model on a holdout set to detect any potential data leakage or overfitting issues"
+      ],
+      "confidence": 0.92
+    },
+    "transform": {
+      "result": {
+        "total_transformations": 12,
+        "high_priority": 1,
+        "medium_priority": 5,
+        "low_priority": 6,
+        "transformations": [
+          {
+            "id": "handle_missing_Cabin",
+            "type": "missing_value_handling",
+            "priority": "high",
+            "description": "Drop column 'Cabin' due to high missing rate (77.1%)",
+            "params": {
+              "column": "Cabin",
+              "strategy": "drop_column",
+              "missing_count": 687,
+              "missing_percentage": 77.10437710437711
+            },
+            "reasoning": "Column has 77.1% missing values which need handling",
+            "impact": "Will affect 687 rows in column 'Cabin'",
+            "approved": false
+          },
+          {
+            "id": "handle_missing_Age",
+            "type": "missing_value_handling",
+            "priority": "medium",
+            "description": "Impute missing values in 'Age' with median",
+            "params": {
+              "column": "Age",
+              "strategy": "impute_median",
+              "missing_count": 177,
+              "missing_percentage": 19.865319865319865
+            },
+            "reasoning": "Column has 19.9% missing values which need handling",
+            "impact": "Will affect 177 rows in column 'Age'",
+            "approved": false
+          },
+          {
+            "id": "handle_outliers_Age",
+            "type": "outlier_handling",
+            "priority": "medium",
+            "description": "Cap outliers in 'Age' using IQR method",
+            "params": {
+              "column": "Age",
+              "method": "cap",
+              "lower_bound": -6.6875,
+              "upper_bound": 64.8125,
+              "outlier_count": 11
+            },
+            "reasoning": "Column has 11 outliers that may skew analysis",
+            "impact": "Will cap 11 values to range [-6.69, 64.81]",
+            "approved": false
+          },
+          {
+            "id": "handle_outliers_SibSp",
+            "type": "outlier_handling",
+            "priority": "medium",
+            "description": "Cap outliers in 'SibSp' using IQR method",
+            "params": {
+              "column": "SibSp",
+              "method": "cap",
+              "lower_bound": -1.5,
+              "upper_bound": 2.5,
+              "outlier_count": 46
+            },
+            "reasoning": "Column has 46 outliers that may skew analysis",
+            "impact": "Will cap 46 values to range [-1.50, 2.50]",
+            "approved": false
+          },
+          {
+            "id": "handle_outliers_Parch",
+            "type": "outlier_handling",
+            "priority": "medium",
+            "description": "Cap outliers in 'Parch' using IQR method",
+            "params": {
+              "column": "Parch",
+              "method": "cap",
+              "lower_bound": 0.0,
+              "upper_bound": 0.0,
+              "outlier_count": 213
+            },
+            "reasoning": "Column has 213 outliers that may skew analysis",
+            "impact": "Will cap 213 values to range [0.00, 0.00]",
+            "approved": false
+          },
+          {
+            "id": "handle_outliers_Fare",
+            "type": "outlier_handling",
+            "priority": "medium",
+            "description": "Cap outliers in 'Fare' using IQR method",
+            "params": {
+              "column": "Fare",
+              "method": "cap",
+              "lower_bound": -26.724,
+              "upper_bound": 65.6344,
+              "outlier_count": 116
+            },
+            "reasoning": "Column has 116 outliers that may skew analysis",
+            "impact": "Will cap 116 values to range [-26.72, 65.63]",
+            "approved": false
+          },
+          {
+            "id": "handle_cardinality_PassengerId",
+            "type": "cardinality_reduction",
+            "priority": "low",
+            "description": "Consider dropping or encoding 'PassengerId' (high cardinality)",
+            "params": {
+              "column": "PassengerId",
+              "suggested_action": "review"
+            },
+            "reasoning": "High cardinality columns may not be useful for modeling",
+            "impact": "May improve model performance by removing ID-like columns",
+            "approved": false
+          },
+          {
+            "id": "handle_cardinality_Name",
+            "type": "cardinality_reduction",
+            "priority": "low",
+            "description": "Consider dropping or encoding 'Name' (high cardinality)",
+            "params": {
+              "column": "Name",
+              "suggested_action": "review"
+            },
+            "reasoning": "High cardinality columns may not be useful for modeling",
+            "impact": "May improve model performance by removing ID-like columns",
+            "approved": false
+          },
+          {
+            "id": "encode_Sex",
+            "type": "categorical_encoding",
+            "priority": "low",
+            "description": "One-hot encode categorical column 'Sex'",
+            "params": {
+              "column": "Sex",
+              "method": "onehot"
+            },
+            "reasoning": "Categorical columns need encoding for numerical analysis",
+            "impact": "Will create binary columns for each category",
+            "approved": false
+          },
+          {
+            "id": "encode_Ticket",
+            "type": "categorical_encoding",
+            "priority": "low",
+            "description": "One-hot encode categorical column 'Ticket'",
+            "params": {
+              "column": "Ticket",
+              "method": "onehot"
+            },
+            "reasoning": "Categorical columns need encoding for numerical analysis",
+            "impact": "Will create binary columns for each category",
+            "approved": false
+          },
+          {
+            "id": "encode_Embarked",
+            "type": "categorical_encoding",
+            "priority": "low",
+            "description": "One-hot encode categorical column 'Embarked'",
+            "params": {
+              "column": "Embarked",
+              "method": "onehot"
+            },
+            "reasoning": "Categorical columns need encoding for numerical analysis",
+            "impact": "Will create binary columns for each category",
+            "approved": false
+          },
+          {
+            "id": "scale_numeric",
+            "type": "scaling",
+            "priority": "low",
+            "description": "Standardize numeric columns for modeling",
+            "params": {
+              "columns": [
+                "PassengerId",
+                "Survived",
+                "Pclass",
+                "Age",
+                "SibSp",
+                "Parch",
+                "Fare"
+              ],
+              "method": "standard"
+            },
+            "reasoning": "Scaling ensures all features contribute equally to models",
+            "impact": "Will transform numeric columns to mean=0, std=1",
+            "approved": false
+          }
+        ]
+      },
+      "reasoning": "The proposed transformations aim to handle missing values, outliers, and high cardinality columns to improve data quality and prepare the dataset for analysis. The high-priority transformation to drop the 'Cabin' column is reasonable due to its high missing rate, which could introduce bias in the analysis. The medium-priority transformations focus on imputing missing values and capping outliers in columns such as 'Age', 'SibSp', 'Parch', and 'Fare' to prevent skewing the analysis. The low-priority transformations suggest dropping or encoding high cardinality columns and one-hot encoding categorical columns to improve model performance.",
+      "impact": "The proposed transformations will significantly impact the dataset, affecting 687 rows in the 'Cabin' column, 177 rows in the 'Age' column, and capping outliers in several columns. The transformations will also create new binary columns for categorical variables and potentially remove ID-like columns. The overall impact is expected to improve data quality, reduce bias, and enhance model performance.",
+      "recommendations": [
+        "Prioritize the high-priority transformation to drop the 'Cabin' column and apply it first to avoid any potential issues with subsequent transformations",
+        "Apply the medium-priority transformations in a sequence that addresses missing values before capping outliers, starting with the 'Age' column",
+        "Re-evaluate the low-priority transformations after applying the high and medium-priority transformations, as the impact of these transformations may change after the initial data cleaning and preprocessing steps",
+        "Consider using more advanced imputation methods, such as regression-based imputation or multiple imputation, for the 'Age' column instead of median imputation",
+        "Monitor the performance of the model after applying the transformations and adjust the sequence or type of transformations as needed"
+      ],
+      "confidence": 0.95
+    },
+    "visualization": {
+      "result": {
+        "visualization_id": "viz_67b201c4",
+        "total_plots": 16,
+        "sample_size": 891,
+        "plots": [
+          {
+            "type": "distribution",
+            "column": "PassengerId",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_dist_PassengerId.png",
+            "statistics": {
+              "mean": 446.0,
+              "median": 446.0,
+              "std": 257.3538420152301,
+              "skewness": 0.0
+            },
+            "interpretation": "Approximately symmetric distribution"
+          },
+          {
+            "type": "distribution",
+            "column": "Survived",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_dist_Survived.png",
+            "statistics": {
+              "mean": 0.3838383838383838,
+              "median": 0.0,
+              "std": 0.4865924542648575,
+              "skewness": 0.4785234382949897
+            },
+            "interpretation": "Approximately symmetric distribution"
+          },
+          {
+            "type": "distribution",
+            "column": "Pclass",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_dist_Pclass.png",
+            "statistics": {
+              "mean": 2.308641975308642,
+              "median": 3.0,
+              "std": 0.836071240977049,
+              "skewness": -0.6305479068752845
+            },
+            "interpretation": "Left-skewed (negative skew) - tail extends to lower values"
+          },
+          {
+            "type": "distribution",
+            "column": "Age",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_dist_Age.png",
+            "statistics": {
+              "mean": 29.69911764705882,
+              "median": 28.0,
+              "std": 14.526497332334042,
+              "skewness": 0.3891077823008269
+            },
+            "interpretation": "Approximately symmetric distribution"
+          },
+          {
+            "type": "distribution",
+            "column": "SibSp",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_dist_SibSp.png",
+            "statistics": {
+              "mean": 0.5230078563411896,
+              "median": 0.0,
+              "std": 1.1027434322934317,
+              "skewness": 3.6953517271630556
+            },
+            "interpretation": "Right-skewed (positive skew) - tail extends to higher values"
+          },
+          {
+            "type": "distribution",
+            "column": "Parch",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_dist_Parch.png",
+            "statistics": {
+              "mean": 0.38159371492704824,
+              "median": 0.0,
+              "std": 0.8060572211299483,
+              "skewness": 2.7491170471010933
+            },
+            "interpretation": "Right-skewed (positive skew) - tail extends to higher values"
+          },
+          {
+            "type": "correlation_heatmap",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_correlation_heatmap.png",
+            "num_variables": 7,
+            "strong_correlations": [],
+            "interpretation": "Found 0 pairs with |correlation| > 0.7"
+          },
+          {
+            "type": "box_plot",
+            "column": "Age",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_boxplot_Age.png",
+            "quartiles": {
+              "Q1": 20.125,
+              "Q3": 38.0,
+              "IQR": 17.875
+            }
+          },
+          {
+            "type": "box_plot",
+            "column": "SibSp",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_boxplot_SibSp.png",
+            "quartiles": {
+              "Q1": 0.0,
+              "Q3": 1.0,
+              "IQR": 1.0
+            }
+          },
+          {
+            "type": "box_plot",
+            "column": "Parch",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_boxplot_Parch.png",
+            "quartiles": {
+              "Q1": 0.0,
+              "Q3": 0.0,
+              "IQR": 0.0
+            }
+          },
+          {
+            "type": "box_plot",
+            "column": "Fare",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_boxplot_Fare.png",
+            "quartiles": {
+              "Q1": 7.9104,
+              "Q3": 31.0,
+              "IQR": 23.0896
+            }
+          },
+          {
+            "type": "categorical_bar",
+            "column": "Name",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_categorical_Name.png",
+            "num_categories": 891,
+            "top_category": "Moubarek, Master. Halim Gonios (\"William George\")",
+            "top_count": 1
+          },
+          {
+            "type": "categorical_bar",
+            "column": "Sex",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_categorical_Sex.png",
+            "num_categories": 2,
+            "top_category": "male",
+            "top_count": 577
+          },
+          {
+            "type": "categorical_bar",
+            "column": "Ticket",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_categorical_Ticket.png",
+            "num_categories": 681,
+            "top_category": "347082",
+            "top_count": 7
+          },
+          {
+            "type": "categorical_bar",
+            "column": "Cabin",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_categorical_Cabin.png",
+            "num_categories": 148,
+            "top_category": "B96 B98",
+            "top_count": 4
+          },
+          {
+            "type": "missing_heatmap",
+            "path": "data\\artifacts\\plots\\viz_67b201c4_missing_heatmap.png",
+            "columns_with_missing": 3,
+            "interpretation": "Visualizing missing patterns across 3 columns"
+          }
+        ],
+        "summary": {
+          "by_type": {
+            "distribution": 6,
+            "correlation_heatmap": 1,
+            "box_plot": 4,
+            "categorical_bar": 4,
+            "missing_heatmap": 1
+          },
+          "total_plots": 16
+        }
+      },
+      "reasoning": "The visualizations were generated to understand the distribution of variables and relationships between them in the dataset. The plots reveal key patterns such as symmetry, skewness, and outliers in the distributions of PassengerId, Survived, Pclass, Age, SibSp, and Parch. Notably, Pclass is left-skewed, indicating a higher proportion of lower-class passengers, while SibSp and Parch are right-skewed, suggesting that most passengers had fewer siblings or spouses and parents/children aboard. The approximately symmetric distributions of PassengerId, Survived, and Age suggest a relatively even spread of values.",
+      "impact": "These visual insights mean that the dataset has a mix of symmetric and skewed distributions, which can inform modeling decisions and data preprocessing steps. For example, the skewness in Pclass, SibSp, and Parch may require transformations or special handling to ensure accurate predictions. The symmetric distributions of PassengerId, Survived, and Age suggest that these variables may not require extensive preprocessing.",
+      "recommendations": [
+        "Transform Pclass, SibSp, and Parch using techniques such as logarithmic or square root transformations to reduce skewness and improve model performance",
+        "Investigate the reasons behind the left-skewness in Pclass and the right-skewness in SibSp and Parch to identify potential data quality issues or underlying patterns",
+        "Use the correlation heatmap to identify relationships between variables and inform feature selection or engineering for modeling purposes",
+        "Consider using robust statistical methods or outlier detection techniques to handle potential outliers in the distributions",
+        "Explore the relationship between Survived and other variables to identify potential predictors of survival"
+      ],
+      "confidence": 0.95
+    },
+    "stat": {
+      "result": {
+        "sample_size": 891,
+        "normality_tests": {
+          "total_tested": 7,
+          "normal_features": 0,
+          "non_normal_features": 7,
+          "results": [
+            {
+              "feature": "PassengerId",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.9547966185821929,
+                  "p_value": 6.308055732385329e-16,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 642.8073622809791,
+                  "p_value": 2.6070827572058934e-140,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": 0.0,
+                "kurtosis": -1.200003023126921,
+                "skew_interpretation": "Approximately symmetric",
+                "kurtosis_interpretation": "Light tails (platykurtic: -1.20)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            },
+            {
+              "feature": "Survived",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.6166579014211242,
+                  "p_value": 1.7942531147532744e-40,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 4070.9170789921313,
+                  "p_value": 0.0,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": 0.4777174662568536,
+                "kurtosis": -1.7717860224331319,
+                "skew_interpretation": "Approximately symmetric",
+                "kurtosis_interpretation": "Light tails (platykurtic: -1.77)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            },
+            {
+              "feature": "Pclass",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.7183302542767394,
+                  "p_value": 3.393031278882668e-36,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 1437.108999717104,
+                  "p_value": 0.0,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": -0.6294858816096934,
+                "kurtosis": -1.279569681870039,
+                "skew_interpretation": "Left-skewed (negative skew: -0.63)",
+                "kurtosis_interpretation": "Light tails (platykurtic: -1.28)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            },
+            {
+              "feature": "Age",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.9814577414504965,
+                  "p_value": 7.337348958679226e-08,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 18.10503295208975,
+                  "p_value": 0.00011709599657350791,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": 0.38828985146986567,
+                "kurtosis": 0.16863657224286044,
+                "skew_interpretation": "Approximately symmetric",
+                "kurtosis_interpretation": "Normal tails (mesokurtic)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            },
+            {
+              "feature": "SibSp",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.5129657630388483,
+                  "p_value": 5.750830636609992e-44,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 722.8740448500905,
+                  "p_value": 1.0712617667711273e-157,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": 3.68912768477595,
+                "kurtosis": 17.773511746920917,
+                "skew_interpretation": "Right-skewed (positive skew: 3.69)",
+                "kurtosis_interpretation": "Heavy tails (leptokurtic: 17.77)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            },
+            {
+              "feature": "Parch",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.5328139355786115,
+                  "p_value": 2.38662224717171e-43,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 543.0352821075946,
+                  "p_value": 1.206109535335251e-118,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": 2.7444867379203735,
+                "kurtosis": 9.716613236667282,
+                "skew_interpretation": "Right-skewed (positive skew: 2.74)",
+                "kurtosis_interpretation": "Heavy tails (leptokurtic: 9.72)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            },
+            {
+              "feature": "Fare",
+              "tests": {
+                "shapiro_wilk": {
+                  "statistic": 0.5218913010396561,
+                  "p_value": 1.0840444395829968e-43,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                },
+                "dagostino": {
+                  "statistic": 904.5872705326929,
+                  "p_value": 3.727091062841722e-197,
+                  "is_normal": "False",
+                  "interpretation": "Not Normal"
+                }
+              },
+              "descriptive": {
+                "skewness": 4.779253292372355,
+                "kurtosis": 33.20428925264475,
+                "skew_interpretation": "Right-skewed (positive skew: 4.78)",
+                "kurtosis_interpretation": "Heavy tails (leptokurtic: 33.20)"
+              },
+              "overall_assessment": {
+                "is_likely_normal": false,
+                "confidence": "high"
+              }
+            }
+          ]
+        },
+        "distribution_analysis": {
+          "total_analyzed": 7,
+          "distributions": [
+            {
+              "feature": "PassengerId",
+              "distribution_type": "light_tailed",
+              "moments": {
+                "mean": 446.0,
+                "median": 446.0,
+                "mode": 1.0,
+                "std": 257.3538420152301,
+                "variance": 66231.0,
+                "range": 890.0,
+                "iqr": 445.0
+              },
+              "percentiles": {
+                "p01": 9.9,
+                "p05": 45.5,
+                "p25": 223.5,
+                "p50": 446.0,
+                "p75": 668.5,
+                "p95": 846.5,
+                "p99": 882.1
+              }
+            },
+            {
+              "feature": "Survived",
+              "distribution_type": "light_tailed",
+              "moments": {
+                "mean": 0.3838383838383838,
+                "median": 0.0,
+                "mode": 0.0,
+                "std": 0.4865924542648575,
+                "variance": 0.23677221654749742,
+                "range": 1.0,
+                "iqr": 1.0
+              },
+              "percentiles": {
+                "p01": 0.0,
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 1.0,
+                "p95": 1.0,
+                "p99": 1.0
+              }
+            },
+            {
+              "feature": "Pclass",
+              "distribution_type": "light_tailed",
+              "moments": {
+                "mean": 2.308641975308642,
+                "median": 3.0,
+                "mode": 3.0,
+                "std": 0.836071240977049,
+                "variance": 0.6990151199889028,
+                "range": 2.0,
+                "iqr": 1.0
+              },
+              "percentiles": {
+                "p01": 1.0,
+                "p05": 1.0,
+                "p25": 2.0,
+                "p50": 3.0,
+                "p75": 3.0,
+                "p95": 3.0,
+                "p99": 3.0
+              }
+            },
+            {
+              "feature": "Age",
+              "distribution_type": "likely_normal",
+              "moments": {
+                "mean": 29.69911764705882,
+                "median": 28.0,
+                "mode": 24.0,
+                "std": 14.526497332334042,
+                "variance": 211.01912474630805,
+                "range": 79.58,
+                "iqr": 17.875
+              },
+              "percentiles": {
+                "p01": 1.0,
+                "p05": 4.0,
+                "p25": 20.125,
+                "p50": 28.0,
+                "p75": 38.0,
+                "p95": 56.0,
+                "p99": 65.87
+              }
+            },
+            {
+              "feature": "SibSp",
+              "distribution_type": "right_skewed",
+              "moments": {
+                "mean": 0.5230078563411896,
+                "median": 0.0,
+                "mode": 0.0,
+                "std": 1.1027434322934317,
+                "variance": 1.2160430774662985,
+                "range": 8.0,
+                "iqr": 1.0
+              },
+              "percentiles": {
+                "p01": 0.0,
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 1.0,
+                "p95": 3.0,
+                "p99": 5.0
+              }
+            },
+            {
+              "feature": "Parch",
+              "distribution_type": "right_skewed",
+              "moments": {
+                "mean": 0.38159371492704824,
+                "median": 0.0,
+                "mode": 0.0,
+                "std": 0.8060572211299483,
+                "variance": 0.6497282437357343,
+                "range": 6.0,
+                "iqr": 0.0
+              },
+              "percentiles": {
+                "p01": 0.0,
+                "p05": 0.0,
+                "p25": 0.0,
+                "p50": 0.0,
+                "p75": 0.0,
+                "p95": 2.0,
+                "p99": 4.0
+              }
+            },
+            {
+              "feature": "Fare",
+              "distribution_type": "right_skewed",
+              "moments": {
+                "mean": 32.20420796857463,
+                "median": 14.4542,
+                "mode": 8.05,
+                "std": 49.6934285971809,
+                "variance": 2469.436845743116,
+                "range": 512.3292,
+                "iqr": 23.0896
+              },
+              "percentiles": {
+                "p01": 0.0,
+                "p05": 7.225,
+                "p25": 7.9104,
+                "p50": 14.4542,
+                "p75": 31.0,
+                "p95": 112.07915,
+                "p99": 249.00622000000035
+              }
+            }
+          ]
+        },
+        "statistical_summaries": {
+          "numeric_summary": {
+            "count": 865,
+            "mean_of_means": 73.07148679229267,
+            "median_of_medians": 3.0,
+            "std_of_stds": 46.40074747048719,
+            "cv_average": 0.6350048357756678
+          },
+          "categorical_summary": {
+            "total_categories": 1724,
+            "avg_categories_per_feature": 344.8,
+            "most_diverse_feature": "Name",
+            "least_diverse_feature": "Sex"
+          }
+        },
+        "hypothesis_tests": {
+          "total_tests": 2,
+          "tests": [
+            {
+              "test_type": "pearson_correlation",
+              "feature1": "PassengerId",
+              "feature2": "Survived",
+              "correlation": -0.005006660767066491,
+              "p_value": 0.8813657768798053,
+              "is_significant": "False",
+              "interpretation": "Correlation is not significant at \u03b1=0.05"
+            },
+            {
+              "test_type": "chi_square_independence",
+              "feature1": "Name",
+              "feature2": "Sex",
+              "chi_square": 891.0000000000001,
+              "p_value": 0.48424815197363197,
+              "degrees_of_freedom": 890,
+              "is_independent": "True",
+              "interpretation": "Features are independent at \u03b1=0.05"
+            }
+          ]
+        },
+        "outlier_statistics": {
+          "features_analyzed": 7,
+          "outlier_statistics": [
+            {
+              "feature": "PassengerId",
+              "iqr_outliers": 0,
+              "iqr_percentage": 0.0,
+              "z_score_outliers": 0,
+              "z_score_percentage": 0.0,
+              "modified_z_outliers": 0,
+              "severity": "none"
+            },
+            {
+              "feature": "Survived",
+              "iqr_outliers": 0,
+              "iqr_percentage": 0.0,
+              "z_score_outliers": 0,
+              "z_score_percentage": 0.0,
+              "modified_z_outliers": 342,
+              "severity": "none"
+            },
+            {
+              "feature": "Pclass",
+              "iqr_outliers": 0,
+              "iqr_percentage": 0.0,
+              "z_score_outliers": 0,
+              "z_score_percentage": 0.0,
+              "modified_z_outliers": 400,
+              "severity": "none"
+            },
+            {
+              "feature": "Age",
+              "iqr_outliers": 11,
+              "iqr_percentage": 1.5406162464985995,
+              "z_score_outliers": 2,
+              "z_score_percentage": 0.2801120448179272,
+              "modified_z_outliers": 1,
+              "severity": "moderate"
+            },
+            {
+              "feature": "SibSp",
+              "iqr_outliers": 46,
+              "iqr_percentage": 5.16273849607183,
+              "z_score_outliers": 30,
+              "z_score_percentage": 3.3670033670033668,
+              "modified_z_outliers": 283,
+              "severity": "high"
+            },
+            {
+              "feature": "Parch",
+              "iqr_outliers": 213,
+              "iqr_percentage": 23.905723905723907,
+              "z_score_outliers": 15,
+              "z_score_percentage": 1.6835016835016834,
+              "modified_z_outliers": 213,
+              "severity": "high"
+            },
+            {
+              "feature": "Fare",
+              "iqr_outliers": 116,
+              "iqr_percentage": 13.019079685746352,
+              "z_score_outliers": 20,
+              "z_score_percentage": 2.244668911335578,
+              "modified_z_outliers": 160,
+              "severity": "high"
+            }
+          ]
+        }
+      },
+      "reasoning": "The statistical tests were performed to assess the normality of the data, distribution characteristics, and relationships between features. The results reveal that none of the 7 features follow a normal distribution, which may impact modeling decisions that assume normality. The distribution analysis shows that features like PassengerId, Survived, and Pclass are light-tailed, indicating that they may not have extreme values. The hypothesis tests suggest that there is no significant correlation between features at \u03b1=0.05, and the chi-square test indicates that features are independent. The outlier analysis shows that there are no outliers in the data, which is beneficial for statistical inference.",
+      "impact": "The non-normality of the data may affect the choice of modeling techniques, as some methods assume normality. The lack of significant correlation and independence between features may influence feature selection and engineering. The absence of outliers is beneficial, as it reduces the risk of biased estimates and improves the reliability of statistical inferences. These findings will guide the selection of appropriate statistical methods and modeling techniques.",
+      "recommendations": [
+        "Use non-parametric or robust statistical methods that do not assume normality, such as the Wilcoxon rank-sum test or the Spearman correlation coefficient",
+        "Consider transforming features to improve normality, if necessary, or using modeling techniques that can handle non-normal data, such as generalized linear models",
+        "Focus on feature engineering and selection techniques that can capture non-linear relationships and interactions between features, as the data may not follow a simple linear correlation structure",
+        "Use resampling methods, such as bootstrapping, to estimate the variability of statistical estimates and account for the non-normality of the data",
+        "Explore the use of machine learning algorithms that can handle non-normal data and complex relationships, such as decision trees or random forests"
+      ],
+      "confidence": 0.95
+    }
+  }
+}
