@@ -2,6 +2,24 @@
 
 An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powered by LangGraph, Groq, and open-source tools. Features a complete suite of specialized agents with interactive visualizations, export capabilities, and human-in-the-loop interaction.
 
+## 🆕 What's New in v3.1
+
+### Enhanced Transformation System
+- ✅ **Multi-Transformation Selection**: Select and apply multiple transformations at once with checkboxes
+- ✅ **Complete CSV Export**: Apply transformations to full dataset and export as CSV
+- ✅ **Column Change Visualization**: See exactly which columns are added/removed during transformations
+- ✅ **One-Hot Encoding Preview**: Visual mapping showing how categorical columns transform to binary columns
+- ✅ **Progress Tracking**: Real-time progress bar when applying transformations to large datasets
+- ✅ **Quick Actions**: "Select All High Priority" for instant data cleaning
+
+### Fixes & Improvements
+- 🐛 Fixed transformation preview showing same results in before/after
+- 🐛 Fixed DatasetHandle backend access for large datasets
+- 🐛 Fixed CSV export not working
+- 🔧 Added support for all 7 transformation types (encoding, scaling, imputation, etc.)
+- 🔧 Enhanced error reporting with detailed tracebacks
+- 🔧 Smart column comparison (only shows common columns to prevent errors)
+
 ## Features
 
 ### Core Capabilities
@@ -93,7 +111,33 @@ The app will open in your browser at `http://localhost:8501`
    - **Deep Dive**: Comprehensive analysis with detailed insights
    - **ML Preparation**: Prepare data for machine learning workflows
 4. **View Results**: Explore interactive tabs for each agent's analysis
-5. **Export**: Generate HTML reports, JSON data, or transformed CSV files
+5. **Transform Data** (NEW!):
+   - ☑️ Select multiple transformations
+   - Preview combined effect
+   - Apply to full dataset
+   - Export transformed CSV
+6. **Export**: Generate HTML reports, JSON data, or transformed CSV files
+
+### Example: Transform Titanic Dataset
+
+```
+1. Upload titanic_train.csv (891 rows, 12 columns)
+2. Run "Quick Analysis"
+3. Go to "Transform" tab
+4. Click "☑️ Select All High Priority"
+   → 3 transformations selected
+5. Click "Preview Selected (3)"
+   → See: Sex becomes Sex_male & Sex_female
+   → See: Missing Age values filled with median (28)
+   → See: Cabin column removed (77% missing)
+6. Click "Apply 3 transformations to Full Dataset"
+   → Progress: Loading → Applying → Saving (100%)
+7. Go to "Export" tab
+8. Check "Transformed CSV"
+9. Export Now
+10. Download: transformed_dataset_20260720.csv (891 rows, 13 columns)
+    → Ready for ML! 🚀
+```
 
 ## Project Structure
 
@@ -151,11 +195,16 @@ The app will open in your browser at `http://localhost:8501`
 - Interactive quality visualizations
 
 ### 3. TransformAgent
-- Automated data cleaning
-- Missing value imputation
-- Outlier handling
+- Automated data cleaning proposals
+- Missing value imputation strategies
+- Outlier handling (capping, removal)
 - Data type conversions
+- Categorical encoding (one-hot, label)
+- Numeric scaling (standard, min-max)
 - Before/after comparison views
+- **Multi-selection**: Apply multiple transformations at once
+- **Full dataset application**: Apply to entire dataset with progress tracking
+- **CSV export**: Save transformed data for external use
 
 ### 4. VisualizationAgent
 - Automatic chart generation
@@ -175,6 +224,51 @@ The app will open in your browser at `http://localhost:8501`
 - Distribution analysis (normality tests)
 - Comparative statistics
 - Confidence intervals
+
+## Transformation Workflow
+
+The TransformAgent offers a complete data transformation pipeline:
+
+### 1. **Review Proposals**
+- Agent analyzes your data and proposes transformations
+- Organized by priority (High, Medium, Low)
+- Each proposal includes reasoning and impact
+
+### 2. **Multi-Selection**
+- ☑️ Check boxes to select multiple transformations
+- **Quick Actions**:
+  - "Select All High Priority" - Instant data cleaning
+  - "Preview Selected (N)" - See combined effect
+  - "Deselect All" - Clear selections
+
+### 3. **Preview Transformations**
+- See before/after comparison with sample data
+- View removed columns and new columns side-by-side
+- See exact value mappings (e.g., 'male' → [0,1])
+- Understand the combined effect of all selected transformations
+
+### 4. **Apply to Full Dataset**
+- Click "Apply N transformations to Full Dataset"
+- Progress tracking shows: Loading → Applying → Saving
+- Warning for large datasets (memory usage)
+- Preview transformed data inline
+
+### 5. **Export Transformed CSV**
+- Go to Export section
+- Check "Transformed CSV" (now enabled)
+- Download your transformed dataset
+- Use in Excel, Python, R, ML tools, etc.
+
+### Example Workflow
+```
+1. Load Titanic dataset
+2. Review 8 transformation proposals
+3. ☑️ Select: "One-hot encode Sex", "Impute Age", "Drop Cabin"
+4. Preview → See 'Sex' becomes 'Sex_male' and 'Sex_female'
+5. Apply 3 transformations → 891 rows processed
+6. Export → Download transformed_dataset.csv
+7. Use in your ML pipeline! 🚀
+```
 
 ## Available Workflows
 
@@ -221,8 +315,11 @@ Generate professional outputs in multiple formats:
 
 ### Transformed CSV
 - Cleaned and transformed dataset
-- Ready for downstream processing
-- Includes all TransformAgent changes
+- Apply multiple transformations: encoding, imputation, scaling, etc.
+- Full dataset processing (not just samples)
+- Progress tracking for large datasets
+- Ready for downstream processing (Excel, Python, R, ML tools)
+- Includes all selected TransformAgent changes
 
 **Export Location**: `data/exports/`
 
@@ -251,6 +348,10 @@ See `docs/EXPORT_FUNCTIONALITY.md` for detailed documentation.
 - Distribution comparison charts
 - Statistical comparison tables
 - Impact severity indicators
+- **Column transformation mapping**: See exactly how columns change
+- **Removed vs New columns**: Side-by-side view of added/removed columns
+- **One-hot encoding visualization**: Grouped display of encoded columns
+- **Value-by-value mapping**: See how original values transform to new values
 
 ## Tech Stack
 
@@ -334,17 +435,35 @@ See `docs/EXPORT_FUNCTIONALITY.md` for detailed documentation.
 - Ensure `data/exports/` directory exists
 - Check disk space availability
 - Verify write permissions
-- For CSV export, TransformAgent must complete first
+- **For CSV export**: Must click "Apply to Full Dataset" first
+- Check that transformed dataset shows "✅ Ready (N rows)"
+
+### Transformation Issues
+- **CSV checkbox disabled**: Apply transformations to full dataset first
+- **Columns not showing**: Check the "Removed vs New Columns" section in preview
+- **One-hot encoding not visible**: Look for new columns like `ColumnName_value1`, `ColumnName_value2`
+- **DatasetHandle error**: Restart the app if backend connection issues occur
+- **Large dataset slow**: Normal - check progress bar for status
 
 ## Documentation
 
 Detailed documentation available in `docs/`:
 
+### Core Features
 - **PROGRESS_TRACKER.md**: Progress tracking component guide
 - **QUALITY_VISUALIZATION.md**: Quality visualization system
-- **BEFORE_AFTER_COMPARISON.md**: Transformation comparison feature
 - **EXPORT_FUNCTIONALITY.md**: Complete export system documentation
 - **UI_UX_ENHANCEMENTS_SUMMARY.md**: All UI/UX improvements overview
+
+### Transformation Features (NEW!)
+- **TRANSFORMATION_PREVIEW_FIX.md**: Technical details of transformation preview fix
+- **HOW_TO_SEE_NEW_COLUMNS.md**: Guide to viewing transformed columns
+- **UI_LAYOUT_DIAGRAM.md**: Visual layout of transformation UI
+- **TRANSFORMATION_PREVIEW_VISUAL_GUIDE.md**: Before/after comparison guide
+- **CSV_EXPORT_FEATURE.md**: Complete CSV export documentation
+- **EXPORT_CSV_QUICK_GUIDE.md**: Quick start guide for CSV export
+- **CSV_EXPORT_FIX.md**: Technical fix for DatasetHandle backend
+- **MULTI_TRANSFORMATION_SELECTION.md**: Multi-selection feature guide
 
 ## Contributing
 
@@ -370,7 +489,11 @@ Built with:
 
 ---
 
-**Current Version**: 3.0
+**Current Version**: 3.1  
 **Last Updated**: July 2026
+
+### Recent Updates
+- **v3.1** (July 2026): Multi-transformation selection, CSV export, column visualization
+- **v3.0** (June 2026): Complete agent suite, progress tracking, quality visualizations
 
 For questions, issues, or feature requests, please open an issue on the repository.
