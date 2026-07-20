@@ -181,8 +181,13 @@ class ExportManager:
             source_path = Path(result['transformed_data_path'])
             if source_path.exists():
                 output_path = self.output_dir / filename
-                shutil.copy(source_path, output_path)
-                return str(output_path)
+                # Copy the file if it's not already in exports directory
+                if str(source_path.resolve()) != str(output_path.resolve()):
+                    shutil.copy(source_path, output_path)
+                    return str(output_path)
+                else:
+                    # File is already in exports directory
+                    return str(source_path)
 
         return None
 
