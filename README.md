@@ -16,7 +16,9 @@ An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powere
 - **Progress Tracking**: Real-time visual workflow progress with status indicators and ETA
 - **Quality Visualizations**: Interactive charts for missing values, outliers, duplicates, and data quality metrics
 - **Before/After Comparison**: Side-by-side transformation previews with delta metrics and impact analysis
-- **Export System**: Professional HTML reports, JSON data exports, and transformed CSV outputs
+- **Multi-Transformation Selection**: Select and apply multiple transformations at once with checkboxes
+- **Column Change Visualization**: See exactly which columns are added/removed during transformations
+- **Export System**: Professional HTML reports, JSON data exports, and transformed CSV outputs with full dataset support
 - **ML Preparation**: Automated feature engineering and data preparation for machine learning
 
 ## Architecture

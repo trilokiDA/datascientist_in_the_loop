@@ -958,30 +958,40 @@ def display_transform_results():
     if "transform_preview_df" not in st.session_state:
         st.session_state.transform_preview_df = None
 
+    if "selected_transform_ids" not in st.session_state:
+        st.session_state.selected_transform_ids = set()
+
     # Quick action buttons
-    col1, col2, col3 = st.columns([2, 2, 1])
+    col1, col2, col3, col4 = st.columns([2, 2, 2, 1])
 
     with col1:
-        if st.button("🔍 Preview All High Priority", use_container_width=True, type="primary"):
+        if st.button("☑️ Select All High Priority", use_container_width=True):
             high_priority = [t for t in transformations if t['priority'] == 'high']
-            if high_priority:
-                st.session_state.selected_transforms_for_preview = high_priority
-                st.rerun()
+            st.session_state.selected_transform_ids = {t['id'] for t in high_priority}
+            st.rerun()
 
     with col2:
-        if st.button("✅ Preview Selected", use_container_width=True, disabled=not st.session_state.get('selected_transforms_for_preview')):
-            # This will trigger the comparison view below
-            pass
+        selected_count = len(st.session_state.selected_transform_ids)
+        if st.button(f"🔍 Preview Selected ({selected_count})", use_container_width=True, type="primary", disabled=selected_count == 0):
+            selected_transforms = [t for t in transformations if t['id'] in st.session_state.selected_transform_ids]
+            st.session_state.selected_transforms_for_preview = selected_transforms
+            st.rerun()
 
     with col3:
+        if st.button("☐ Deselect All", use_container_width=True):
+            st.session_state.selected_transform_ids = set()
+            st.rerun()
+
+    with col4:
         if st.button("🔄 Reset", use_container_width=True):
             st.session_state.selected_transforms_for_preview = []
+            st.session_state.selected_transform_ids = set()
             st.session_state.transform_preview_df = None
             st.rerun()
 
     st.divider()
 
-    # Show transformations by priority
+    # Show transformations by priority with checkboxes
     for priority in ['high', 'medium', 'low']:
         priority_transforms = [t for t in transformations if t['priority'] == priority]
 
@@ -989,9 +999,17 @@ def display_transform_results():
             st.subheader(f"{priority.title()} Priority Transformations")
 
             for idx, transform in enumerate(priority_transforms):
-                col1, col2 = st.columns([4, 1])
+                col1, col2, col3 = st.columns([0.5, 3.5, 1])
 
                 with col1:
+                    # Checkbox for selection
+                    is_selected = transform['id'] in st.session_state.selected_transform_ids
+                    if st.checkbox("", value=is_selected, key=f"select_{priority}_{idx}", label_visibility="collapsed"):
+                        st.session_state.selected_transform_ids.add(transform['id'])
+                    else:
+                        st.session_state.selected_transform_ids.discard(transform['id'])
+
+                with col2:
                     with st.expander(f"{transform['type'].replace('_', ' ').title()} - {transform['description'][:60]}..."):
                         st.markdown(f"**Description:** {transform['description']}")
                         st.markdown(f"**Reasoning:** {transform['reasoning']}")
@@ -1004,10 +1022,27 @@ def display_transform_results():
                             for key, value in transform['params'].items():
                                 st.markdown(f"  - {key}: `{value}`")
 
-                with col2:
+                with col3:
                     if st.button("👁️ Preview", key=f"preview_{priority}_{idx}"):
                         st.session_state.selected_transforms_for_preview = [transform]
+                        st.session_state.selected_transform_ids = {transform['id']}
                         st.rerun()
+
+    st.divider()
+
+    # Show selection summary
+    if st.session_state.selected_transform_ids:
+        selected_transforms = [t for t in transformations if t['id'] in st.session_state.selected_transform_ids]
+
+        st.info(f"""
+        📋 **{len(selected_transforms)} transformation(s) selected**
+
+        Selected transformations will be applied in sequence when you preview or apply to full dataset.
+        """)
+
+        with st.expander(f"📝 View Selected Transformations ({len(selected_transforms)})"):
+            for i, t in enumerate(selected_transforms, 1):
+                st.markdown(f"{i}. **{t['type'].replace('_', ' ').title()}** - {t['description']}")
 
     st.divider()
 
@@ -1152,6 +1187,198 @@ def display_transform_results():
             show_details=True
         )
 
+        # Add "Apply Transformations" button
+        st.divider()
+        st.subheader("💾 Apply Transformations to Full Dataset")
+
+        # Check dataset size and show warning for large datasets
+        dataset_mode = st.session_state.dataset_handle.mode
+        dataset_size = st.session_state.dataset_handle.shape[0]
+
+        if dataset_mode == "sampled":
+            st.warning(f"""
+            ⚠️ **Large Dataset Detected** ({dataset_size:,} rows)
+
+            Applying transformations will load the entire dataset into memory.
+            This may take some time and use significant memory.
+            """)
+        else:
+            st.info("""
+            **Preview shows a sample.** Click below to apply these transformations to the **entire dataset**
+            and save the result for export.
+            """)
+
+        col1, col2, col3 = st.columns([2, 2, 1])
+
+        # Show count of transformations being applied
+        num_transforms = len(selected_transforms)
+        transform_text = f"transformation{'s' if num_transforms > 1 else ''}"
+
+        with col1:
+            apply_to_full = st.button(
+                f"✅ Apply {num_transforms} {transform_text} to Full Dataset",
+                type="primary",
+                use_container_width=True,
+                help=f"Apply {num_transforms} selected {transform_text} to the entire dataset and save for export"
+            )
+
+        with col2:
+            if 'transformed_dataset' in st.session_state and st.session_state.transformed_dataset is not None:
+                st.success(f"✅ Transformed dataset ready ({len(st.session_state.transformed_dataset):,} rows)")
+
+        with col3:
+            if 'transformed_dataset' in st.session_state and st.session_state.transformed_dataset is not None:
+                if st.button("🗑️ Clear", use_container_width=True):
+                    st.session_state.transformed_dataset = None
+                    if 'transformed_data_path' in st.session_state:
+                        del st.session_state.transformed_data_path
+                    st.rerun()
+
+        if apply_to_full:
+            try:
+                # Show progress
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+
+                # Step 1: Load dataset
+                status_text.text("📥 Loading full dataset into memory...")
+                df_full = st.session_state.dataset_handle.backend.get_dataframe().copy()
+                progress_bar.progress(0.2)
+
+                # Apply the same transformations
+                total_transforms = len(selected_transforms)
+                for idx, transform in enumerate(selected_transforms):
+                    # Update progress
+                    progress = 0.2 + (0.6 * (idx / total_transforms))
+                    progress_bar.progress(progress)
+                    status_text.text(f"🔄 Applying transformation {idx + 1}/{total_transforms}: {transform['type']}...")
+
+                    transform_type = transform['type']
+                    params = transform.get('params', {})
+
+                    if transform_type == 'deduplication':
+                        df_full = df_full.drop_duplicates(keep=params.get('keep', 'first'))
+
+                    elif transform_type == 'missing_value_handling':
+                        col = params.get('column')
+                        strategy = params.get('strategy')
+
+                        if col and col in df_full.columns:
+                            if strategy == 'drop_column':
+                                df_full = df_full.drop(columns=[col])
+                            elif strategy == 'impute_median':
+                                df_full[col] = df_full[col].fillna(df_full[col].median())
+                            elif strategy == 'impute_mode':
+                                mode_val = df_full[col].mode()[0] if not df_full[col].mode().empty else 'Unknown'
+                                df_full[col] = df_full[col].fillna(mode_val)
+                            elif strategy == 'impute_constant':
+                                constant = params.get('value', 'Unknown')
+                                df_full[col] = df_full[col].fillna(constant)
+
+                    elif transform_type == 'outlier_handling':
+                        col = params.get('column')
+                        strategy = params.get('strategy', 'cap')
+
+                        if col and col in df_full.columns:
+                            Q1 = df_full[col].quantile(0.25)
+                            Q3 = df_full[col].quantile(0.75)
+                            IQR = Q3 - Q1
+                            lower = Q1 - 1.5 * IQR
+                            upper = Q3 + 1.5 * IQR
+
+                            if strategy == 'cap':
+                                df_full[col] = df_full[col].clip(lower, upper)
+
+                    elif transform_type == 'categorical_encoding':
+                        col = params.get('column')
+                        method = params.get('method', 'onehot')
+
+                        if col and col in df_full.columns:
+                            if method == 'onehot':
+                                dummies = pd.get_dummies(df_full[col], prefix=col, drop_first=False)
+                                df_full = pd.concat([df_full.drop(columns=[col]), dummies], axis=1)
+                            elif method == 'label':
+                                df_full[col] = pd.Categorical(df_full[col]).codes
+
+                    elif transform_type == 'type_conversion':
+                        col = params.get('column')
+                        to_type = params.get('to_type')
+
+                        if col and col in df_full.columns:
+                            try:
+                                if to_type == 'numeric':
+                                    df_full[col] = pd.to_numeric(df_full[col], errors='coerce')
+                                elif to_type == 'datetime':
+                                    df_full[col] = pd.to_datetime(df_full[col], errors='coerce')
+                                elif to_type == 'categorical':
+                                    df_full[col] = df_full[col].astype('category')
+                            except Exception:
+                                pass
+
+                    elif transform_type == 'scaling':
+                        cols = params.get('columns', [])
+                        method = params.get('method', 'standard')
+
+                        for col in cols:
+                            if col in df_full.columns and pd.api.types.is_numeric_dtype(df_full[col]):
+                                if method == 'standard':
+                                    mean = df_full[col].mean()
+                                    std = df_full[col].std()
+                                    if std > 0:
+                                        df_full[col] = (df_full[col] - mean) / std
+                                elif method == 'minmax':
+                                    min_val = df_full[col].min()
+                                    max_val = df_full[col].max()
+                                    if max_val > min_val:
+                                        df_full[col] = (df_full[col] - min_val) / (max_val - min_val)
+
+                    elif transform_type == 'cardinality_reduction':
+                        col = params.get('column')
+                        action = params.get('suggested_action', 'review')
+
+                        if col and col in df_full.columns and action == 'drop':
+                            df_full = df_full.drop(columns=[col])
+
+                # Save transformed dataset
+                progress_bar.progress(0.8)
+                status_text.text("💾 Saving transformed dataset...")
+
+                st.session_state.transformed_dataset = df_full
+
+                # Save to file for export
+                output_dir = Path("data/exports")
+                output_dir.mkdir(parents=True, exist_ok=True)
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                csv_path = output_dir / f"transformed_dataset_{timestamp}.csv"
+                df_full.to_csv(csv_path, index=False)
+                st.session_state.transformed_data_path = str(csv_path)
+
+                # Update transform results to include the path
+                st.session_state.analysis_results['transform']['result']['transformed_data_path'] = str(csv_path)
+
+                # Complete
+                progress_bar.progress(1.0)
+                status_text.text("✅ Complete!")
+
+                st.success(f"""
+                ✅ **Transformations applied successfully!**
+                - Original shape: {st.session_state.dataset_handle.shape}
+                - Transformed shape: {df_full.shape}
+                - Saved to: {csv_path.name}
+                - Ready for export in the **Export** section
+                """)
+
+                # Show preview of transformed data
+                with st.expander("📊 Preview Transformed Dataset"):
+                    st.dataframe(df_full.head(20), use_container_width=True)
+                    st.caption(f"Showing first 20 rows of {len(df_full):,} total rows")
+
+            except Exception as e:
+                st.error(f"❌ Failed to apply transformations: {str(e)}")
+                import traceback
+                with st.expander("🔍 Error Details"):
+                    st.code(traceback.format_exc())
+
     st.divider()
 
     # Explainability
@@ -1199,12 +1426,21 @@ def display_export_options():
         )
 
     with col3:
+        # Check if transformed dataset is available
+        has_transformed = (
+            'transformed_dataset' in st.session_state and
+            st.session_state.transformed_dataset is not None
+        )
+
         export_csv = st.checkbox(
             "📋 Transformed CSV",
             value=False,
-            help="Export transformed dataset (requires TransformAgent results)",
-            disabled="transform" not in st.session_state.analysis_results
+            help="Export transformed dataset (click 'Apply to Full Dataset' in Transform section first)",
+            disabled=not has_transformed
         )
+
+        if not has_transformed and 'transform' in st.session_state.analysis_results:
+            st.caption("⚠️ Apply transformations first in the Transform section")
 
     st.divider()
 
