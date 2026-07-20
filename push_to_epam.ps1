@@ -110,9 +110,10 @@ Write-Host "🚀 Pushing to EPAM GitLab..." -ForegroundColor Green
 Write-Host "   You may be prompted for credentials..." -ForegroundColor Yellow
 Write-Host ""
 
-try {
-    git push epam $currentBranch
+# Push to EPAM
+git push epam $currentBranch
 
+if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "=====================================================================" -ForegroundColor Green
     Write-Host "  ✅ SUCCESS!" -ForegroundColor Green
@@ -128,14 +129,11 @@ try {
     Write-Host "   2. Check that all files and commits are present" -ForegroundColor White
     Write-Host "   3. Update README.md if needed" -ForegroundColor White
     Write-Host ""
-
-} catch {
+} else {
     Write-Host ""
     Write-Host "=====================================================================" -ForegroundColor Red
     Write-Host "  ❌ PUSH FAILED!" -ForegroundColor Red
     Write-Host "=====================================================================" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     Write-Host ""
     Write-Host "Common Issues:" -ForegroundColor Yellow
     Write-Host "   1. Authentication failed - Check credentials" -ForegroundColor White
