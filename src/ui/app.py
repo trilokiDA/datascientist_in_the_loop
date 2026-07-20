@@ -1075,6 +1075,71 @@ def display_transform_results():
                         df_after[col] = df_after[col].clip(lower, upper)
                         transform_desc.append(f"Capped {outliers_count} outliers in '{col}'")
 
+            elif transform_type == 'categorical_encoding':
+                col = params.get('column')
+                method = params.get('method', 'onehot')
+
+                if col and col in df_after.columns:
+                    if method == 'onehot':
+                        # Apply one-hot encoding
+                        unique_vals = df_after[col].nunique()
+                        dummies = pd.get_dummies(df_after[col], prefix=col, drop_first=False)
+                        df_after = pd.concat([df_after.drop(columns=[col]), dummies], axis=1)
+                        transform_desc.append(f"One-hot encoded '{col}' into {len(dummies.columns)} binary columns")
+                    elif method == 'label':
+                        # Label encoding
+                        df_after[col] = pd.Categorical(df_after[col]).codes
+                        transform_desc.append(f"Label encoded '{col}'")
+
+            elif transform_type == 'type_conversion':
+                col = params.get('column')
+                to_type = params.get('to_type')
+
+                if col and col in df_after.columns:
+                    try:
+                        if to_type == 'numeric':
+                            df_after[col] = pd.to_numeric(df_after[col], errors='coerce')
+                            transform_desc.append(f"Converted '{col}' to numeric")
+                        elif to_type == 'datetime':
+                            df_after[col] = pd.to_datetime(df_after[col], errors='coerce')
+                            transform_desc.append(f"Converted '{col}' to datetime")
+                        elif to_type == 'categorical':
+                            df_after[col] = df_after[col].astype('category')
+                            transform_desc.append(f"Converted '{col}' to categorical")
+                    except Exception as e:
+                        transform_desc.append(f"Failed to convert '{col}': {str(e)}")
+
+            elif transform_type == 'scaling':
+                cols = params.get('columns', [])
+                method = params.get('method', 'standard')
+
+                scaled_count = 0
+                for col in cols:
+                    if col in df_after.columns and pd.api.types.is_numeric_dtype(df_after[col]):
+                        if method == 'standard':
+                            mean = df_after[col].mean()
+                            std = df_after[col].std()
+                            if std > 0:
+                                df_after[col] = (df_after[col] - mean) / std
+                                scaled_count += 1
+                        elif method == 'minmax':
+                            min_val = df_after[col].min()
+                            max_val = df_after[col].max()
+                            if max_val > min_val:
+                                df_after[col] = (df_after[col] - min_val) / (max_val - min_val)
+                                scaled_count += 1
+
+                if scaled_count > 0:
+                    transform_desc.append(f"Scaled {scaled_count} numeric columns using {method} scaling")
+
+            elif transform_type == 'cardinality_reduction':
+                col = params.get('column')
+                action = params.get('suggested_action', 'review')
+
+                if col and col in df_after.columns and action == 'drop':
+                    df_after = df_after.drop(columns=[col])
+                    transform_desc.append(f"Dropped high-cardinality column '{col}'")
+
         # Display comparison
         transformation_info = {
             'description': ' | '.join(transform_desc) if transform_desc else 'Multiple transformations applied'

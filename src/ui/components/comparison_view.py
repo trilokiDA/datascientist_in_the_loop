@@ -549,15 +549,30 @@ def display_transformation_comparison(
     with tab1:
         st.subheader("Side-by-Side Data Preview")
 
-        # Column selector
+        # Column selector - only show columns that exist in both dataframes
+        common_cols = list(set(df_before.columns) & set(df_after.columns))
+        new_cols = list(set(df_after.columns) - set(df_before.columns))
+        removed_cols = list(set(df_before.columns) - set(df_after.columns))
+
         if show_details:
-            selected_cols = st.multiselect(
-                "Select columns to compare",
-                options=list(df_before.columns),
-                default=list(df_before.columns)[:5]
-            )
+            # Show info about column changes
+            if new_cols:
+                st.info(f"🆕 New columns added: {', '.join(new_cols)}")
+            if removed_cols:
+                st.warning(f"🗑️ Columns removed: {', '.join(removed_cols)}")
+
+            # Let user select from common columns
+            if common_cols:
+                selected_cols = st.multiselect(
+                    "Select columns to compare (common columns only)",
+                    options=common_cols,
+                    default=common_cols[:min(5, len(common_cols))]
+                )
+            else:
+                selected_cols = []
+                st.warning("⚠️ No common columns between before and after transformations. Showing full dataframes separately.")
         else:
-            selected_cols = list(df_before.columns)[:5]
+            selected_cols = common_cols[:min(5, len(common_cols))]
 
         if selected_cols:
             comparator.create_side_by_side_preview(
@@ -566,6 +581,119 @@ def display_transformation_comparison(
                 columns=selected_cols,
                 max_rows=15
             )
+        else:
+            # Show full dataframes separately when no common columns
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("### 📤 Before Transformation")
+                st.dataframe(df_before.head(15), use_container_width=True, height=400)
+            with col2:
+                st.markdown("### 📥 After Transformation")
+                st.dataframe(df_after.head(15), use_container_width=True, height=400)
+
+        # Show removed and new columns side-by-side
+        if new_cols or removed_cols:
+            st.divider()
+            st.subheader("📊 Removed vs New Columns Comparison")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if removed_cols:
+                    st.markdown("### 🗑️ Removed Columns (Before)")
+                    # Show the removed columns with their actual values
+                    for col in removed_cols:
+                        st.markdown(f"**Column: `{col}`**")
+                        st.dataframe(
+                            df_before[[col]].head(15),
+                            use_container_width=True,
+                            height=300
+                        )
+                        st.caption(f"Unique values: {df_before[col].nunique()} | Data type: {df_before[col].dtype}")
+                else:
+                    st.info("No columns were removed")
+
+            with col2:
+                if new_cols:
+                    st.markdown("### 🆕 New Columns (After)")
+                    # Show the new columns with their actual values
+                    st.dataframe(
+                        df_after[new_cols].head(15),
+                        use_container_width=True,
+                        height=300
+                    )
+
+                    # Show data types and unique values for new columns
+                    st.caption("**New Column Details:**")
+                    for col in new_cols:
+                        unique_count = df_after[col].nunique()
+                        dtype = df_after[col].dtype
+                        st.caption(f"• `{col}`: {unique_count} unique values | {dtype}")
+                else:
+                    st.info("No new columns were created")
+
+        # Show transformation mapping with actual values
+        if new_cols and removed_cols:
+            st.divider()
+            st.subheader("🔄 Transformation Mapping: How Values Changed")
+
+            # Group new columns by prefix to detect one-hot encoding
+            prefixes = {}
+            for col in new_cols:
+                if '_' in col:
+                    prefix = col.rsplit('_', 1)[0]
+                    if prefix not in prefixes:
+                        prefixes[prefix] = []
+                    prefixes[prefix].append(col)
+
+            # Show mapping for each removed column
+            for removed_col in removed_cols:
+                # Check if this column was one-hot encoded
+                if removed_col in prefixes:
+                    st.markdown(f"### `{removed_col}` → One-Hot Encoded")
+
+                    # Create a mapping dataframe showing before and after
+                    mapping_df = pd.DataFrame({
+                        'Original': df_before[removed_col].head(10)
+                    })
+
+                    # Add the new one-hot encoded columns
+                    for new_col in sorted(prefixes[removed_col]):
+                        mapping_df[new_col] = df_after[new_col].head(10).values
+
+                    st.dataframe(mapping_df, use_container_width=True)
+
+                    # Show the encoding explanation
+                    st.info(f"""
+                    **Explanation:** Each unique value in `{removed_col}` becomes a separate binary column:
+                    - When `{removed_col}` = value, the corresponding column gets 1 (True)
+                    - All other columns get 0 (False)
+                    """)
+                else:
+                    # Column was removed but not one-hot encoded
+                    st.markdown(f"### `{removed_col}` → Removed/Transformed")
+                    st.caption("This column was removed or transformed in a different way")
+
+        # Show details about column transformations (summary)
+        elif new_cols or removed_cols:
+            st.divider()
+            st.subheader("🔄 Column Transformation Summary")
+
+            col1, col2 = st.columns(2)
+
+            with col1:
+                if removed_cols:
+                    st.markdown("**🗑️ Removed Columns:**")
+                    for col in removed_cols:
+                        # Show sample values from the removed column
+                        sample_vals = df_before[col].dropna().unique()[:5]
+                        st.markdown(f"- `{col}` → Sample values: {', '.join(map(str, sample_vals))}")
+
+            with col2:
+                if new_cols:
+                    st.markdown("**🆕 New Columns Created:**")
+                    for col in new_cols:
+                        st.markdown(f"- `{col}`")
 
     with tab2:
         st.subheader("Key Metrics Before vs After")
@@ -576,15 +704,16 @@ def display_transformation_comparison(
     with tab3:
         st.subheader("Distribution Changes by Column")
 
-        # Select column for distribution comparison
-        numeric_cols = df_before.select_dtypes(include=[np.number]).columns.tolist()
-        categorical_cols = df_before.select_dtypes(exclude=[np.number]).columns.tolist()
+        # Select column for distribution comparison - only show common columns
+        common_cols = list(set(df_before.columns) & set(df_after.columns))
+        numeric_cols = [col for col in common_cols if pd.api.types.is_numeric_dtype(df_before[col])]
+        categorical_cols = [col for col in common_cols if not pd.api.types.is_numeric_dtype(df_before[col])]
 
         all_cols = numeric_cols + categorical_cols[:5]  # Limit categorical
 
         if all_cols:
             selected_col = st.selectbox(
-                "Select column to compare",
+                "Select column to compare (common columns only)",
                 options=all_cols
             )
 
@@ -596,6 +725,28 @@ def display_transformation_comparison(
                 )
                 if dist_fig:
                     st.plotly_chart(dist_fig, use_container_width=True)
+        else:
+            st.info("ℹ️ No common columns available for distribution comparison. The transformation completely changed the column structure.")
+
+            # Show new columns added by transformation
+            new_cols = list(set(df_after.columns) - set(df_before.columns))
+            if new_cols:
+                st.subheader("New Columns Created by Transformation")
+
+                # Show sample of new columns
+                new_cols_to_show = new_cols[:10]  # Show first 10 new columns
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.markdown("**New Column Names:**")
+                    for col in new_cols_to_show:
+                        st.markdown(f"- `{col}`")
+                    if len(new_cols) > 10:
+                        st.caption(f"... and {len(new_cols) - 10} more columns")
+
+                with col2:
+                    st.markdown("**Sample Values:**")
+                    st.dataframe(df_after[new_cols_to_show].head(5), use_container_width=True)
 
     with tab4:
         st.subheader("Statistical Comparison")
