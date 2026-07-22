@@ -4,6 +4,13 @@ import pandas as pd
 import duckdb
 from pathlib import Path
 
+# Check for openpyxl availability (needed for Excel support)
+try:
+    import openpyxl
+    EXCEL_SUPPORT = True
+except ImportError:
+    EXCEL_SUPPORT = False
+
 
 class DataBackend(ABC):
     """Abstract base class for data backends"""
@@ -59,7 +66,22 @@ class InMemoryBackend(DataBackend):
 
     def __init__(self, path: str):
         self.path = path
-        self.df = pd.read_csv(path)
+        # Determine file type and read accordingly
+        file_ext = Path(path).suffix.lower()
+
+        if file_ext in ['.xlsx', '.xls']:
+            if not EXCEL_SUPPORT:
+                raise ImportError(
+                    "Excel file support requires openpyxl. "
+                    "Install it with: pip install openpyxl>=3.1.0"
+                )
+            # Read Excel file (first sheet by default)
+            self.df = pd.read_excel(path, sheet_name=0, engine='openpyxl' if file_ext == '.xlsx' else None)
+        elif file_ext == '.csv':
+            self.df = pd.read_csv(path)
+        else:
+            raise ValueError(f"Unsupported file format: {file_ext}. Supported formats: .csv, .xlsx, .xls")
+
         self._parse_datetime_columns()
 
     def _parse_datetime_columns(self):
@@ -125,13 +147,36 @@ class SampledBackend(DataBackend):
         self.path = path
         self.sample_size = sample_size
         self.conn = duckdb.connect(':memory:')
-
-        # Create view of the CSV
         self.table_name = 'dataset'
-        self.conn.execute(f"""
-            CREATE VIEW {self.table_name} AS
-            SELECT * FROM read_csv_auto('{path}')
-        """)
+
+        # Determine file type
+        file_ext = Path(path).suffix.lower()
+
+        if file_ext in ['.xlsx', '.xls']:
+            if not EXCEL_SUPPORT:
+                raise ImportError(
+                    "Excel file support requires openpyxl. "
+                    "Install it with: pip install openpyxl>=3.1.0"
+                )
+            # For Excel files, convert to temporary CSV first for DuckDB
+            # Read Excel and create a temporary in-memory representation
+            df_temp = pd.read_excel(path, sheet_name=0, engine='openpyxl' if file_ext == '.xlsx' else None)
+
+            # Register the dataframe directly with DuckDB
+            self.conn.register('dataset', df_temp)
+
+            # Create a view from the registered dataframe
+            self.conn.execute(f"CREATE VIEW {self.table_name}_view AS SELECT * FROM dataset")
+            self.table_name = f"{self.table_name}_view"
+
+        elif file_ext == '.csv':
+            # Create view of the CSV
+            self.conn.execute(f"""
+                CREATE VIEW {self.table_name} AS
+                SELECT * FROM read_csv_auto('{path}')
+            """)
+        else:
+            raise ValueError(f"Unsupported file format: {file_ext}. Supported formats: .csv, .xlsx, .xls")
 
         # Cache shape
         self._shape = self._compute_shape()

@@ -156,9 +156,9 @@ def display_sidebar():
         st.header("📁 Dataset")
 
         uploaded_file = st.file_uploader(
-            "Upload CSV File",
-            type=['csv'],
-            help="Upload your dataset for comprehensive analysis"
+            "Upload Dataset File",
+            type=['csv', 'xlsx', 'xls'],
+            help="Upload your dataset (CSV or Excel) for comprehensive analysis. For Excel files, the first sheet will be analyzed."
         )
 
         if uploaded_file is not None:
@@ -172,8 +172,28 @@ def display_sidebar():
 
             if st.session_state.dataset_handle is None or \
                st.session_state.dataset_handle.path != str(file_path):
-                st.session_state.dataset_handle = DatasetHandle(str(file_path))
-                st.success(f"✅ Loaded: {uploaded_file.name}")
+                try:
+                    st.session_state.dataset_handle = DatasetHandle(str(file_path))
+
+                    # Show appropriate message based on file type
+                    file_ext = Path(uploaded_file.name).suffix.lower()
+                    if file_ext in ['.xlsx', '.xls']:
+                        st.success(f"✅ Loaded: {uploaded_file.name} (Excel - first sheet)")
+                    else:
+                        st.success(f"✅ Loaded: {uploaded_file.name}")
+                except ImportError as e:
+                    st.error(f"❌ Excel support not available: {str(e)}")
+                    st.info("💡 Install Excel support with: `pip install openpyxl>=3.1.0`")
+                    st.session_state.dataset_handle = None
+                    return
+                except Exception as e:
+                    st.error(f"❌ Failed to load file: {str(e)}")
+                    st.info(f"File type detected: {Path(uploaded_file.name).suffix.lower()}")
+                    with st.expander("🔍 Error Details"):
+                        import traceback
+                        st.code(traceback.format_exc())
+                    st.session_state.dataset_handle = None
+                    return
 
                 # Display quick stats
                 info = st.session_state.dataset_handle.get_info()

@@ -2,7 +2,15 @@
 
 An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powered by LangGraph, Groq, and open-source tools. Features a complete suite of specialized agents with interactive visualizations, export capabilities, and human-in-the-loop interaction.
 
-## 🆕 What's New in v3.2
+## 🆕 What's New in v3.3
+
+### 📊 Excel File Support (NEW!)
+- ✅ **Excel Upload**: Support for `.xlsx` and `.xls` files in addition to CSV
+- ✅ **Automatic Detection**: First sheet is automatically loaded and analyzed
+- ✅ **Seamless Integration**: Excel files work with all agents and workflows
+- ✅ **Same Performance**: Intelligent backend selection (in-memory vs sampled) for Excel files
+
+## What's New in v3.2
 
 ### 🚦 Human-in-the-Loop Approval Gates (NEW!)
 - ✅ **Agent Approval Gates**: Review and approve each agent before proceeding to the next
@@ -137,7 +145,7 @@ The app will open in your browser at `http://localhost:8501`
 
 ### 4. Usage
 
-1. **Upload Dataset**: Click "Browse files" in the sidebar and upload a CSV file
+1. **Upload Dataset**: Click "Browse files" in the sidebar and upload a CSV or Excel file (`.csv`, `.xlsx`, `.xls`)
 2. **View Quick Stats**: See immediate dataset overview (rows, columns, size)
 3. **Choose Analysis**:
    - **Quick Analysis**: Run all 6 agents sequentially
@@ -543,6 +551,7 @@ Built with:
 **Last Updated**: July 2026
 
 ### Recent Updates
+- **v3.3** (July 2026): 📊 Excel file support (.xlsx, .xls), automatic sheet detection, seamless integration
 - **v3.2** (July 2026): 🚦 Human-in-the-Loop approval gates, decision tracking, step-by-step agent review
 - **v3.1** (July 2026): Multi-transformation selection, CSV export, column visualization
 - **v3.0** (June 2026): Complete agent suite, progress tracking, quality visualizations

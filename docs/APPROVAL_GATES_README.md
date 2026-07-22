@@ -13,7 +13,8 @@ streamlit run src/ui/app.py
 
 ### 2. Upload Dataset
 - Click "Browse files" in sidebar
-- Upload any CSV file (try the Titanic dataset)
+- Upload any CSV or Excel file (`.csv`, `.xlsx`, `.xls`)
+- For Excel files, the first sheet will be analyzed
 
 ### 3. Enable Approval Gates
 In the sidebar:
