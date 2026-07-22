@@ -21,6 +21,11 @@ from .comparison_view import (
     display_transformation_comparison
 )
 
+from .approval_gate import (
+    ApprovalGate,
+    store_user_decision
+)
+
 __all__ = [
     "WorkflowStep",
     "WorkflowProgressTracker",
@@ -31,5 +36,7 @@ __all__ = [
     "display_quality_visualizations",
     "ComparisonView",
     "TransformationComparison",
-    "display_transformation_comparison"
+    "display_transformation_comparison",
+    "ApprovalGate",
+    "store_user_decision"
 ]

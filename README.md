@@ -2,9 +2,41 @@
 
 An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powered by LangGraph, Groq, and open-source tools. Features a complete suite of specialized agents with interactive visualizations, export capabilities, and human-in-the-loop interaction.
 
-## 🆕 What's New in v3.1
+## 🆕 What's New in v3.2
 
-### Enhanced Transformation System
+### 🚦 Human-in-the-Loop Approval Gates (NEW!)
+- ✅ **Agent Approval Gates**: Review and approve each agent before proceeding to the next
+- ✅ **4 Decision Options**: Approve, Retry, Skip, or Stop at each agent
+- ✅ **Decision History**: Track all approval decisions throughout workflow
+- ✅ **3 New Workflows**: Quick Analysis, Deep Dive, and ML Prep with Approval Gates
+- ✅ **Detailed Review UI**: See confidence scores, issues found, and recommendations
+- ✅ **Agent-Specific Details**: Tailored detail views for each agent type
+- ✅ **Thumbnail Gallery**: Quick preview of visualization plots with expand-to-full-size option
+
+👉 **[Quick Start Guide](APPROVAL_GATES_README.md)** | **[Full Documentation](docs/APPROVAL_GATES_GUIDE.md)**
+
+#### Why Approval Gates Show Summary, Not Full Results?
+
+The approval gate design follows a **two-phase workflow** for optimal user experience:
+
+**Phase 1: Approval Gate (Quick Review)**
+- **Purpose**: Fast decision-making - approve, retry, skip, or stop
+- **Shows**: Summary metrics, key findings, reasoning, and thumbnail previews
+- **Why compact?**
+  - ⚡ **Speed**: Quick review enables fast decisions (30-60 seconds per agent)
+  - 📏 **Size**: With 8+ plots and detailed tables, gates would become unwieldy
+  - 🎯 **Focus**: Summary view keeps attention on decision-relevant information
+  - 🔄 **Workflow**: Detailed analysis happens after approval, not during
+
+**Phase 2: Results Tab (Deep Analysis)**
+- **Purpose**: Comprehensive exploration of agent findings
+- **Shows**: All plots in full size, complete tables, interactive visualizations, export options
+- **When**: After workflow completes or individual agent runs
+- **Where**: Navigate to tabbed interface (Profile, Quality, Visualizations, etc.)
+
+This separation ensures approval gates remain **fast decision points** while full results provide **thorough analysis capabilities**.
+
+### Enhanced Transformation System (v3.1)
 - ✅ **Multi-Transformation Selection**: Select and apply multiple transformations at once with checkboxes
 - ✅ **Complete CSV Export**: Apply transformations to full dataset and export as CSV
 - ✅ **Column Change Visualization**: See exactly which columns are added/removed during transformations
@@ -31,6 +63,7 @@ An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powere
 - **Flexible Workflows**: Pre-defined pipelines + individual agent execution
 
 ### Advanced Features
+- **Human-in-the-Loop Control**: Agent approval gates for reviewing and approving each step
 - **Progress Tracking**: Real-time visual workflow progress with status indicators and ETA
 - **Quality Visualizations**: Interactive charts for missing values, outliers, duplicates, and data quality metrics
 - **Before/After Comparison**: Side-by-side transformation previews with delta metrics and impact analysis
@@ -38,6 +71,7 @@ An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powere
 - **Column Change Visualization**: See exactly which columns are added/removed during transformations
 - **Export System**: Professional HTML reports, JSON data exports, and transformed CSV outputs with full dataset support
 - **ML Preparation**: Automated feature engineering and data preparation for machine learning
+- **Decision Tracking**: Complete audit trail of human approval decisions
 
 ## Architecture
 
@@ -110,13 +144,16 @@ The app will open in your browser at `http://localhost:8501`
    - **Individual Agent**: Select and run specific agents
    - **Deep Dive**: Comprehensive analysis with detailed insights
    - **ML Preparation**: Prepare data for machine learning workflows
-4. **View Results**: Explore interactive tabs for each agent's analysis
-5. **Transform Data** (NEW!):
+4. **Enable Approval Gates** (Optional - NEW! 🚦):
+   - ☑️ Check "Enable Approval Gates" to review each agent before continuing
+   - Uncheck for automatic execution
+5. **View Results**: Explore interactive tabs for each agent's analysis
+6. **Transform Data**:
    - ☑️ Select multiple transformations
    - Preview combined effect
    - Apply to full dataset
    - Export transformed CSV
-6. **Export**: Generate HTML reports, JSON data, or transformed CSV files
+7. **Export**: Generate HTML reports, JSON data, or transformed CSV files
 
 ### Example: Transform Titanic Dataset
 
@@ -277,24 +314,37 @@ The TransformAgent offers a complete data transformation pipeline:
 - Comprehensive dataset overview
 - ~5-10 minutes for typical datasets
 - Best for: First-time analysis, complete understanding
+- **NEW**: Available with Approval Gates for human review
 
 ### Deep Dive Workflow
-- Thorough analysis with multiple approval gates
+- Thorough analysis (5 agents: Profile, Quality, Viz, Feature, Stat)
 - Detailed quality assessment
 - Advanced statistical tests
 - Best for: Critical datasets, production data
+- **NEW**: Available with Approval Gates for step-by-step review
 
 ### ML Preparation
-- Feature engineering focus
+- Feature engineering focus (4 agents: Profile, Quality, Feature, Transform)
 - Correlation analysis
 - Feature selection recommendations
 - Training-ready data export
 - Best for: Machine learning projects
+- **NEW**: Available with Approval Gates for controlled ML prep
 
 ### Individual Agent Execution
 - Run any single agent on-demand
 - Fast, targeted analysis
 - Best for: Specific questions, iterative exploration
+
+### 🚦 NEW: Workflows with Approval Gates
+All workflows now available with **Human-in-the-Loop approval gates**:
+- Pause after each agent for human review
+- See confidence scores, issues, and recommendations
+- **4 decision options**: Approve, Retry, Skip, or Stop
+- Full decision history tracking
+- Best for: Critical analysis, compliance, learning
+
+👉 **[Get Started with Approval Gates](APPROVAL_GATES_README.md)**
 
 ## Export Features
 
@@ -489,10 +539,11 @@ Built with:
 
 ---
 
-**Current Version**: 3.1  
+**Current Version**: 3.2  
 **Last Updated**: July 2026
 
 ### Recent Updates
+- **v3.2** (July 2026): 🚦 Human-in-the-Loop approval gates, decision tracking, step-by-step agent review
 - **v3.1** (July 2026): Multi-transformation selection, CSV export, column visualization
 - **v3.0** (June 2026): Complete agent suite, progress tracking, quality visualizations
 

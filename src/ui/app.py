@@ -28,7 +28,9 @@ from src.ui.components import (
     PROGRESS_TRACKER_CSS,
     AGENT_STEPS,
     display_quality_visualizations,
-    display_transformation_comparison
+    display_transformation_comparison,
+    ApprovalGate,
+    store_user_decision
 )
 import os
 
@@ -109,6 +111,22 @@ if "workflow_tracker" not in st.session_state:
 if "export_manager" not in st.session_state:
     st.session_state.export_manager = ExportManager()
 
+# Approval gate workflow state
+if "workflow_mode" not in st.session_state:
+    st.session_state.workflow_mode = None
+
+if "current_agent_index" not in st.session_state:
+    st.session_state.current_agent_index = 0
+
+if "waiting_for_approval" not in st.session_state:
+    st.session_state.waiting_for_approval = False
+
+if "user_decisions" not in st.session_state:
+    st.session_state.user_decisions = []
+
+if "agent_configs" not in st.session_state:
+    st.session_state.agent_configs = []
+
 
 def display_header():
     """Display app header"""
@@ -121,13 +139,13 @@ def display_header():
     with col2:
         st.markdown("**✅ Quality**")
     with col3:
-        st.markdown("**🔧 Transform**")
-    with col4:
         st.markdown("**🎨 Visualize**")
-    with col5:
+    with col4:
         st.markdown("**🔍 Features**")
-    with col6:
+    with col5:
         st.markdown("**📈 Statistics**")
+    with col6:
+        st.markdown("**🔧 Transform**")
 
     st.divider()
 
@@ -177,6 +195,7 @@ def display_sidebar():
         if st.session_state.dataset_handle is None:
             st.warning("⚠️ Upload a dataset first")
         else:
+            # Analysis type selection
             analysis_type = st.radio(
                 "Select Analysis Type",
                 [
@@ -187,6 +206,21 @@ def display_sidebar():
                 ]
             )
 
+            # Approval gates toggle
+            if analysis_type != "📊 Individual Agent":
+                st.markdown("---")
+                enable_approval_gates = st.checkbox(
+                    "🚦 Enable Approval Gates (Human-in-the-Loop)",
+                    value=False,
+                    help="Pause after each agent for review and approval before continuing"
+                )
+
+                if enable_approval_gates:
+                    st.info("✨ **Approval Gates Enabled**: You'll review each agent's results before proceeding to the next step.")
+            else:
+                enable_approval_gates = False
+
+            # Show appropriate options based on analysis type
             if analysis_type == "📊 Individual Agent":
                 agent_choice = st.selectbox(
                     "Choose Agent",
@@ -204,16 +238,46 @@ def display_sidebar():
                     run_single_agent(agent_choice)
 
             elif analysis_type == "🎯 Quick Analysis (All Agents)":
-                if st.button("🚀 Run Complete Analysis", use_container_width=True, type="primary"):
-                    run_complete_analysis()
+                button_label = "🚀 Run Complete Analysis" if not enable_approval_gates else "🚀 Run with Approval Gates"
+
+                if st.button(button_label, use_container_width=True, type="primary"):
+                    if enable_approval_gates:
+                        # Run with approval gates
+                        st.session_state.workflow_mode = "complete_with_approval"
+                        st.session_state.workflow_running = True
+                        st.session_state.current_agent_index = 0
+                        st.rerun()
+                    else:
+                        # Run without approval gates
+                        run_complete_analysis()
 
             elif analysis_type == "🔬 Deep Dive Workflow":
-                if st.button("🚀 Run Deep Dive", use_container_width=True, type="primary"):
-                    run_deep_dive_workflow()
+                button_label = "🚀 Run Deep Dive" if not enable_approval_gates else "🚀 Run Deep Dive with Approval"
+
+                if st.button(button_label, use_container_width=True, type="primary"):
+                    if enable_approval_gates:
+                        # Run with approval gates
+                        st.session_state.workflow_mode = "deep_dive_with_approval"
+                        st.session_state.workflow_running = True
+                        st.session_state.current_agent_index = 0
+                        st.rerun()
+                    else:
+                        # Run without approval gates
+                        run_deep_dive_workflow()
 
             elif analysis_type == "🤖 ML Preparation":
-                if st.button("🚀 Prepare for ML", use_container_width=True, type="primary"):
-                    run_ml_prep_workflow()
+                button_label = "🚀 Prepare for ML" if not enable_approval_gates else "🚀 ML Prep with Approval"
+
+                if st.button(button_label, use_container_width=True, type="primary"):
+                    if enable_approval_gates:
+                        # Run with approval gates
+                        st.session_state.workflow_mode = "ml_prep_with_approval"
+                        st.session_state.workflow_running = True
+                        st.session_state.current_agent_index = 0
+                        st.rerun()
+                    else:
+                        # Run without approval gates
+                        run_ml_prep_workflow()
 
         st.divider()
 
@@ -499,6 +563,210 @@ def run_ml_prep_workflow():
 
     st.session_state.workflow_running = False
     st.rerun()
+
+
+def run_workflow_with_approval_gates():
+    """
+    Run workflow with approval gates between agents
+    This function handles the step-by-step execution with human review
+    """
+    handle = st.session_state.dataset_handle
+
+    # Define agent configurations based on workflow mode
+    workflow_mode = st.session_state.workflow_mode
+
+    if workflow_mode == "complete_with_approval":
+        agent_configs = [
+            ("profile", "ProfileAgent", ProfileAgent()),
+            ("quality", "QualityAgent", QualityAgent()),
+            ("visualization", "VisualizationAgent", VisualizationAgent()),
+            ("feature", "FeatureAgent", FeatureAgent()),
+            ("stat", "StatAgent", StatAgent()),
+            ("transform", "TransformAgent", TransformAgent())
+        ]
+        tracker_type = "complete_analysis"
+    elif workflow_mode == "deep_dive_with_approval":
+        agent_configs = [
+            ("profile", "ProfileAgent", ProfileAgent()),
+            ("quality", "QualityAgent", QualityAgent()),
+            ("visualization", "VisualizationAgent", VisualizationAgent()),
+            ("feature", "FeatureAgent", FeatureAgent()),
+            ("stat", "StatAgent", StatAgent())
+        ]
+        tracker_type = "deep_dive"
+    elif workflow_mode == "ml_prep_with_approval":
+        agent_configs = [
+            ("profile", "ProfileAgent", ProfileAgent()),
+            ("quality", "QualityAgent", QualityAgent()),
+            ("feature", "FeatureAgent", FeatureAgent()),
+            ("transform", "TransformAgent", TransformAgent())
+        ]
+        tracker_type = "ml_prep"
+    else:
+        st.error("Invalid workflow mode")
+        return
+
+    # Store agent configs in session state
+    if not st.session_state.agent_configs:
+        st.session_state.agent_configs = agent_configs
+
+    # Create tracker if not exists
+    if st.session_state.workflow_tracker is None:
+        tracker = create_workflow_tracker(tracker_type)
+        st.session_state.workflow_tracker = tracker
+
+    current_index = st.session_state.current_agent_index
+    tracker = st.session_state.workflow_tracker
+
+    # Check if workflow is complete
+    if current_index >= len(agent_configs):
+        st.success("🎉 Workflow completed successfully!")
+        st.balloons()
+
+        # Show summary of decisions
+        if st.session_state.user_decisions:
+            with st.expander("📋 View Decision History"):
+                for i, decision in enumerate(st.session_state.user_decisions, 1):
+                    decision_emoji = {
+                        "approved": "✅",
+                        "retry": "🔄",
+                        "skip": "⏩",
+                        "stop": "⏹️"
+                    }.get(decision['decision'], "❓")
+
+                    st.markdown(f"**{i}. {decision['step_id']}**: {decision_emoji} {decision['decision']}")
+                    if decision.get('feedback'):
+                        st.caption(f"Feedback: {decision['feedback']}")
+
+        # Reset workflow state
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if st.button("🔄 Start New Workflow", use_container_width=True):
+                st.session_state.workflow_mode = None
+                st.session_state.workflow_running = False
+                st.session_state.current_agent_index = 0
+                st.session_state.waiting_for_approval = False
+                st.session_state.workflow_tracker = None
+                st.session_state.agent_configs = []
+                st.rerun()
+
+        with col2:
+            st.info("👇 Scroll down to view detailed results in the tabs below")
+
+        # Mark workflow as complete - allow results to display
+        st.session_state.workflow_running = False
+        st.session_state.workflow_mode = None
+
+        st.divider()
+        # Return here - main() will continue and call display_results()
+        return
+
+    # Get current agent (only reached if workflow is still running)
+    step_id, agent_name, agent = agent_configs[current_index]
+
+    # Find the step in tracker
+    step = next((s for s in tracker.steps if s.id == step_id), None)
+
+    # If not waiting for approval, run the agent
+    if not st.session_state.waiting_for_approval:
+        st.info(f"🔄 Running {agent_name}...")
+
+        # Show progress
+        progress_container = st.empty()
+
+        if step:
+            step.start()
+            with progress_container.container():
+                tracker.render()
+
+        try:
+            # Get context
+            context = {
+                "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
+                "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+            }
+
+            # Run agent
+            result = agent.analyze(handle, context)
+
+            # Store result
+            st.session_state.analysis_results[step_id] = result
+
+            # Complete the step
+            if step:
+                step.complete()
+
+            # Update progress display
+            with progress_container.container():
+                tracker.render()
+
+            st.success(f"✅ {agent_name} completed!")
+
+            # Set waiting for approval
+            st.session_state.waiting_for_approval = True
+            st.rerun()
+
+        except Exception as e:
+            if step:
+                step.fail(str(e))
+                with progress_container.container():
+                    tracker.render()
+
+            st.error(f"❌ {agent_name} failed: {str(e)}")
+            st.session_state.workflow_running = False
+            return
+
+    # Show approval gate
+    else:
+        # Show progress tracker
+        tracker.render()
+
+        st.divider()
+
+        # Get the result
+        result = st.session_state.analysis_results.get(step_id)
+
+        if result:
+            # Create and render approval gate
+            gate = ApprovalGate(agent_name, result, step_id)
+            decision = gate.render()
+
+            # Handle decision
+            if decision == "approved":
+                store_user_decision(step_id, "approved")
+                st.session_state.current_agent_index += 1
+                st.session_state.waiting_for_approval = False
+                st.rerun()
+
+            elif decision == "retry":
+                store_user_decision(step_id, "retry")
+                # Remove the result to force re-run
+                if step_id in st.session_state.analysis_results:
+                    del st.session_state.analysis_results[step_id]
+                st.session_state.waiting_for_approval = False
+                st.rerun()
+
+            elif decision == "skip":
+                store_user_decision(step_id, "skip")
+                # Keep result but move to next
+                st.session_state.current_agent_index += 1
+                st.session_state.waiting_for_approval = False
+                st.rerun()
+
+            elif decision == "stop":
+                store_user_decision(step_id, "stop")
+                st.warning("⏹️ Workflow stopped by user")
+                st.session_state.workflow_running = False
+                st.session_state.workflow_mode = None
+
+                # Reset button
+                if st.button("🔄 Reset Workflow"):
+                    st.session_state.current_agent_index = 0
+                    st.session_state.waiting_for_approval = False
+                    st.session_state.workflow_tracker = None
+                    st.session_state.agent_configs = []
+                    st.rerun()
 
 
 def display_results():
@@ -1686,6 +1954,15 @@ def main():
     """Main application"""
     display_header()
     display_sidebar()
+
+    # Handle approval gate workflows
+    if st.session_state.workflow_running and st.session_state.workflow_mode:
+        if st.session_state.workflow_mode in ["complete_with_approval", "deep_dive_with_approval", "ml_prep_with_approval"]:
+            run_workflow_with_approval_gates()
+            # Don't return - let it fall through to display_results() when complete
+            if st.session_state.workflow_running:
+                # Still running - don't show results yet
+                return
 
     # Show progress tracker if workflow is running or just completed
     if st.session_state.workflow_tracker:
