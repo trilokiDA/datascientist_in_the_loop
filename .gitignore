@@ -35,6 +35,11 @@ data/checkpoints/*
 !data/artifacts/.gitkeep
 !data/checkpoints/.gitkeep
 
+# Exports - exclude generated files
+data/exports/*.csv
+data/exports/*.html
+data/exports/*.json
+
 # IDE
 .vscode/
 .idea/

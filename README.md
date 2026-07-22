@@ -13,7 +13,7 @@ An intelligent, production-ready EDA (Exploratory Data Analysis) pipeline powere
 - ✅ **Agent-Specific Details**: Tailored detail views for each agent type
 - ✅ **Thumbnail Gallery**: Quick preview of visualization plots with expand-to-full-size option
 
-👉 **[Quick Start Guide](APPROVAL_GATES_README.md)** | **[Full Documentation](docs/APPROVAL_GATES_GUIDE.md)**
+👉 **[Quick Start Guide](docs/APPROVAL_GATES_README.md)** | **[Full Documentation](docs/APPROVAL_GATES_GUIDE.md)**
 
 #### Why Approval Gates Show Summary, Not Full Results?
 
@@ -344,7 +344,7 @@ All workflows now available with **Human-in-the-Loop approval gates**:
 - Full decision history tracking
 - Best for: Critical analysis, compliance, learning
 
-👉 **[Get Started with Approval Gates](APPROVAL_GATES_README.md)**
+👉 **[Get Started with Approval Gates](docs/APPROVAL_GATES_README.md)**
 
 ## Export Features
 
