@@ -106,6 +106,178 @@ This separation ensures approval gates remain **fast decision points** while ful
 └─────────────────┘
 ```
 
+## LangGraph Workflow Orchestration
+
+The EDA Pipeline uses **LangGraph** for state machine-based workflow orchestration, enabling:
+- **Stateful execution** with checkpoint/resume capabilities
+- **Human-in-the-loop** approval gates with conditional routing
+- **Context propagation** between agents
+- **Explainable decisions** with reasoning logs
+
+### State Management
+
+The workflow maintains a comprehensive `EDAState` that tracks:
+
+```python
+EDAState:
+  # Dataset metadata
+  - dataset_path, dataset_mode, dataset_size
+  - dataset_rows, dataset_cols
+  
+  # Workflow control
+  - workflow_type: "quick_profile" | "deep_clean" | "feature_engineering"
+  - current_step, completed_steps
+  - pending_approval, approval_context
+  
+  # Analysis results
+  - profile_results, quality_results
+  - feature_results, stat_results
+  - visualizations[]
+  
+  # Explainability
+  - reasoning_log[] (timestamp, agent, reasoning, impact, confidence)
+  
+  # Human interaction
+  - user_decisions[] (approved/rejected/modified)
+  - user_messages[]
+  
+  # Transformations
+  - pending_transformations[]
+  - applied_transformations[]
+```
+
+### Workflow Nodes
+
+**Analysis Nodes:**
+1. **profile** - ProfileAgent analyzes dataset structure and statistics
+2. **quality_check** - QualityAgent detects missing values, duplicates, outliers
+3. **transform_proposal** - TransformAgent proposes cleaning transformations
+4. **visualization** - VisualizationAgent generates charts
+5. **feature_analysis** - FeatureAgent analyzes correlations and features
+6. **statistical_analysis** - StatAgent performs hypothesis testing
+
+**Control Nodes:**
+- **human_review_[step]** - Interrupt points for human approval
+- Conditional routing based on user decisions (approve/retry/skip/stop)
+
+### Workflow Execution Flow
+
+```
+START
+  │
+  ▼
+[Profile]
+  │
+  ▼
+[Human Review] ───retry──> [Profile]
+  │
+  │ approved
+  ▼
+[Quality Check]
+  │
+  ▼
+[Human Review] ───retry──> [Quality Check]
+  │
+  │ approved
+  ▼
+[Transform Proposal]
+  │
+  ▼
+[Human Review] ───retry──> [Transform Proposal]
+  │
+  │ approved
+  ▼
+END
+```
+
+### Conditional Routing
+
+After each human review, the workflow routes based on user decision:
+
+```python
+# Route after profile review
+if decision == "approved":
+    → continue to quality_check
+elif decision == "rejected":
+    → retry profile node
+else:
+    → end workflow
+
+# Similar routing for quality_check and transform_proposal
+```
+
+### Checkpoint & Resume
+
+**Persistent State:**
+- Workflow state is saved at each node
+- Can pause and resume from any point
+- State includes all analysis results and user decisions
+
+**Resume Example:**
+```python
+workflow = EDAWorkflow()
+state = workflow.get_state(thread_id="session_123")
+# ... user makes decision ...
+workflow.update_state(thread_id, {"user_decisions": [decision]})
+workflow.resume(thread_id)
+```
+
+### Pre-defined Workflows
+
+**Quick Profile** (5 mins)
+- Steps: profile → quality_check → basic_viz
+- Interrupts: after_profile
+- Use case: Fast dataset health check
+
+**Deep Clean** (15 mins)
+- Steps: profile → quality → outlier → missing → transform
+- Interrupts: after_quality, before_transform
+- Use case: Thorough data cleaning
+
+**Feature Engineering** (20 mins)
+- Steps: profile → correlation → importance → interactions → engineer
+- Interrupts: after_correlation, before_engineer
+- Use case: ML preparation and feature discovery
+
+### Context Propagation
+
+Each agent receives context from previous steps:
+
+```python
+context = {
+    "profile_results": state["profile_results"],
+    "quality_results": state["quality_results"],
+    "feature_results": state["feature_results"]
+}
+
+# Agents use this context to make informed decisions
+response = agent.analyze(dataset_handle, context)
+```
+
+### Explainability
+
+Every agent action is logged with reasoning:
+
+```python
+reasoning_log = {
+    "timestamp": "2026-07-23T10:30:00",
+    "agent": "QualityAgent",
+    "action": "quality_assessment",
+    "reasoning": "Found 15% missing values in Age column...",
+    "impact": "Missing values may bias analysis...",
+    "confidence": 0.92
+}
+```
+
+### Benefits of LangGraph Orchestration
+
+✅ **Stateful Execution** - Pause and resume at any point  
+✅ **Human Control** - Review and approve each step  
+✅ **Context Aware** - Agents share insights  
+✅ **Explainable** - Full reasoning trail  
+✅ **Flexible** - Easy to add/modify workflows  
+✅ **Scalable** - Handle complex multi-agent pipelines  
+
 ## Quick Start
 
 ### 1. Installation
