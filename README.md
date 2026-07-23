@@ -214,6 +214,10 @@ The app will open in your browser at `http://localhost:8501`
 │   ├── artifacts/           # Generated plots and visualizations
 │   └── checkpoints/         # LangGraph state persistence
 ├── docs/                    # Detailed documentation
+│   ├── presentations/       # PowerPoint slides and diagrams
+│   │   ├── scripts/         # Scripts to generate materials
+│   │   ├── assets/          # Architecture diagrams (PNG)
+│   │   └── *.pptx           # Generated presentations
 │   ├── PROGRESS_TRACKER.md
 │   ├── QUALITY_VISUALIZATION.md
 │   ├── BEFORE_AFTER_COMPARISON.md
@@ -507,13 +511,20 @@ See `docs/EXPORT_FUNCTIONALITY.md` for detailed documentation.
 
 Detailed documentation available in `docs/`:
 
+### Presentations & Marketing Materials
+- **presentations/**: PowerPoint presentations and architecture diagrams
+  - Ready-to-use presentation slides (18 slides)
+  - High-resolution architecture diagram (PNG, 300 DPI)
+  - Scripts to regenerate materials
+  - See `docs/presentations/README.md` for details
+
 ### Core Features
 - **PROGRESS_TRACKER.md**: Progress tracking component guide
 - **QUALITY_VISUALIZATION.md**: Quality visualization system
 - **EXPORT_FUNCTIONALITY.md**: Complete export system documentation
 - **UI_UX_ENHANCEMENTS_SUMMARY.md**: All UI/UX improvements overview
 
-### Transformation Features (NEW!)
+### Transformation Features
 - **TRANSFORMATION_PREVIEW_FIX.md**: Technical details of transformation preview fix
 - **HOW_TO_SEE_NEW_COLUMNS.md**: Guide to viewing transformed columns
 - **UI_LAYOUT_DIAGRAM.md**: Visual layout of transformation UI
