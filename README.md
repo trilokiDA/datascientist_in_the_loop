@@ -63,7 +63,7 @@ This separation ensures approval gates remain **fast decision points** while ful
 ## Features
 
 ### Core Capabilities
-- **6 Specialized Agents**: ProfileAgent, QualityAgent, TransformAgent, VisualizationAgent, FeatureAgent, StatAgent
+- **7 Specialized Agents**: ProfileAgent, QualityAgent, TransformAgent, VisualizationAgent, FeatureAgent, StatAgent, TimeSeriesAgent
 - **Interactive Chat Interface**: Real-time Streamlit UI with progress tracking
 - **Explainable AI**: Every agent explains WHY and WHAT impact their findings have
 - **Persistent State**: LangGraph checkpoints for pause/resume workflows
@@ -93,13 +93,13 @@ This separation ensures approval gates remain **fast decision points** while ful
 │  Orchestration  │
 └────────┬────────┘
          │
-┌────────▼────────────────────────────────────────────┐
-│              Specialized Agents                      │
-├──────────┬──────────┬──────────┬──────────┬─────────┤
-│ Profile  │ Quality  │Transform │Visualize │Features │
-│  Agent   │  Agent   │  Agent   │  Agent   │ Agent   │
-│          │          │          │          │  Stat   │
-└──────────┴──────────┴──────────┴──────────┴─────────┘
+┌────────▼────────────────────────────────────────────────────────────┐
+│                      Specialized Agents (7)                         │
+├──────────┬──────────┬──────────┬──────────┬──────────┬──────┬───────┤
+│ Profile  │ Quality  │Transform │Visualize │ Feature  │ Stat │ Time  │
+│  Agent   │  Agent   │  Agent   │  Agent   │  Agent   │Agent │Series │
+│          │          │          │          │          │      │Agent  │
+└──────────┴──────────┴──────────┴──────────┴──────────┴──────┴───────┘
          │
 ┌────────▼────────┐
 │   Data Layer    │  ← Pandas/DuckDB with intelligent switching
@@ -360,25 +360,28 @@ The app will open in your browser at `http://localhost:8501`
 
 ```
 ├── src/
-│   ├── agents/              # 6 Specialized EDA agents
+│   ├── agents/              # 7 Specialized EDA agents
 │   │   ├── profile.py       # Dataset profiling and statistics
 │   │   ├── quality.py       # Data quality assessment
 │   │   ├── transform.py     # Data cleaning and transformation
 │   │   ├── visualization.py # Chart generation and visual analysis
 │   │   ├── feature.py       # Feature engineering and analysis
-│   │   └── stat.py          # Statistical testing and analysis
+│   │   ├── stat.py          # Statistical testing and analysis
+│   │   └── time_series_agent.py  # Time series analysis (NEW!)
 │   ├── data/                # DatasetHandle and backend management
 │   │   └── dataset_handle.py
 │   ├── graph/               # LangGraph workflow definitions
 │   ├── ui/                  # Streamlit interface
 │   │   ├── app.py           # Main application
 │   │   └── components/      # Reusable UI components
+│   │       └── progress_tracker.py
 │   └── utils/               # Helper functions and utilities
 │       ├── export.py        # Export manager for HTML/JSON/CSV
 │       └── helpers.py
 ├── tests/                   # Test and demo files
 │   ├── test_*.py            # Unit and integration tests
 │   ├── demo_*.py            # Interactive demonstrations
+│   │   └── demo_time_series_agent.py  # Time series demo
 │   └── README.md            # Test documentation
 ├── data/
 │   ├── uploads/             # Uploaded datasets
@@ -390,6 +393,9 @@ The app will open in your browser at `http://localhost:8501`
 │   │   ├── scripts/         # Scripts to generate materials
 │   │   ├── assets/          # Architecture diagrams (PNG)
 │   │   └── *.pptx           # Generated presentations
+│   ├── TIME_SERIES_AGENT_PHASE1.md     # Time series implementation
+│   ├── TIME_SERIES_AGENT_SUMMARY.md    # Time series overview
+│   ├── TIME_SERIES_UI_INTEGRATION.md   # UI integration guide
 │   ├── PROGRESS_TRACKER.md
 │   ├── QUALITY_VISUALIZATION.md
 │   ├── BEFORE_AFTER_COMPARISON.md
@@ -445,6 +451,16 @@ The app will open in your browser at `http://localhost:8501`
 - Distribution analysis (normality tests)
 - Comparative statistics
 - Confidence intervals
+
+### 7. TimeSeriesAgent (NEW! 🕒)
+- Temporal profiling (frequency, gaps, duplicates)
+- Trend & seasonality detection (STL decomposition)
+- Stationarity testing (ADF test)
+- Time series visualizations
+- Forecasting insights and recommendations
+- **Auto-detection**: Automatically triggered for datetime columns
+- **UI Integration**: Available in individual agent dropdown and results tab
+- **Phase 1**: Core analysis (temporal profiling, decomposition, stationarity) ✅ Complete
 
 ## Transformation Workflow
 
@@ -730,10 +746,11 @@ Built with:
 
 ---
 
-**Current Version**: 3.2  
+**Current Version**: 3.3.1  
 **Last Updated**: July 2026
 
 ### Recent Updates
+- **v3.3.1** (July 2026): 🕒 TimeSeriesAgent Phase 1 - temporal profiling, trend/seasonality detection, stationarity testing
 - **v3.3** (July 2026): 📊 Excel file support (.xlsx, .xls), automatic sheet detection, seamless integration
 - **v3.2** (July 2026): 🚦 Human-in-the-Loop approval gates, decision tracking, step-by-step agent review
 - **v3.1** (July 2026): Multi-transformation selection, CSV export, column visualization
