@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.data.dataset_handle import DatasetHandle
 from src.agents import (
     ProfileAgent, QualityAgent, TransformAgent,
-    VisualizationAgent, FeatureAgent, StatAgent
+    VisualizationAgent, FeatureAgent, StatAgent, TimeSeriesAgent
 )
 from src.utils.helpers import generate_id, get_timestamp
 from src.utils.export import ExportManager
@@ -132,7 +132,7 @@ def display_header():
     """Display app header"""
     st.markdown('<div class="main-header">🚀 EDA Pipeline - Complete Agent Suite</div>', unsafe_allow_html=True)
 
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
     with col1:
         st.markdown("**📊 Profile**")
@@ -145,7 +145,10 @@ def display_header():
     with col5:
         st.markdown("**📈 Statistics**")
     with col6:
+        st.markdown("**🕒 TimeSeries**")
+    with col7:
         st.markdown("**🔧 Transform**")
+
 
     st.divider()
 
@@ -250,7 +253,8 @@ def display_sidebar():
                         "TransformAgent",
                         "VisualizationAgent",
                         "FeatureAgent",
-                        "StatAgent"
+                        "StatAgent",
+                        "TimeSeriesAgent"
                     ]
                 )
 
@@ -320,7 +324,8 @@ def run_single_agent(agent_name: str):
         "TransformAgent": "transform",
         "VisualizationAgent": "visualization",
         "FeatureAgent": "feature",
-        "StatAgent": "stat"
+        "StatAgent": "stat",
+        "TimeSeriesAgent": "timeseries"
     }
 
     step_id = agent_step_map.get(agent_name)
@@ -377,6 +382,17 @@ def run_single_agent(agent_name: str):
                 result = agent.analyze(handle, context)
                 st.session_state.analysis_results["stat"] = result
 
+            elif agent_name == "TimeSeriesAgent":
+                agent = TimeSeriesAgent()
+                result = agent.analyze(handle, context)
+                st.session_state.analysis_results["timeseries"] = result
+
+                # Generate visualizations
+                plots = agent.generate_visualizations(handle, result["result"])
+                if "visualizations" not in st.session_state.analysis_results["timeseries"]["result"]:
+                    st.session_state.analysis_results["timeseries"]["result"]["visualizations"] = []
+                st.session_state.analysis_results["timeseries"]["result"]["visualizations"] = plots
+
             # Complete the step
             step.complete()
 
@@ -410,6 +426,7 @@ def run_complete_analysis():
     agent_configs = [
         ("profile", "ProfileAgent", ProfileAgent()),
         ("quality", "QualityAgent", QualityAgent()),
+        ("timeseries", "TimeSeriesAgent", TimeSeriesAgent()),
         ("visualization", "VisualizationAgent", VisualizationAgent()),
         ("feature", "FeatureAgent", FeatureAgent()),
         ("stat", "StatAgent", StatAgent()),
@@ -443,6 +460,11 @@ def run_complete_analysis():
 
             # Store result
             st.session_state.analysis_results[step_id] = result
+
+            # Special handling for TimeSeriesAgent - generate visualizations
+            if step_id == "timeseries":
+                plots = agent.generate_visualizations(handle, result["result"])
+                st.session_state.analysis_results["timeseries"]["result"]["visualizations"] = plots
 
             # Complete the step
             step.complete()
@@ -484,6 +506,7 @@ def run_deep_dive_workflow():
     agent_configs = [
         ("profile", "ProfileAgent", ProfileAgent()),
         ("quality", "QualityAgent", QualityAgent()),
+        ("timeseries", "TimeSeriesAgent", TimeSeriesAgent()),
         ("visualization", "VisualizationAgent", VisualizationAgent()),
         ("feature", "FeatureAgent", FeatureAgent()),
         ("stat", "StatAgent", StatAgent())
@@ -542,6 +565,7 @@ def run_ml_prep_workflow():
     agent_configs = [
         ("profile", "ProfileAgent", ProfileAgent()),
         ("quality", "QualityAgent", QualityAgent()),
+        ("timeseries", "TimeSeriesAgent", TimeSeriesAgent()),
         ("feature", "FeatureAgent", FeatureAgent()),
         ("transform", "TransformAgent", TransformAgent())
     ]
@@ -599,6 +623,7 @@ def run_workflow_with_approval_gates():
         agent_configs = [
             ("profile", "ProfileAgent", ProfileAgent()),
             ("quality", "QualityAgent", QualityAgent()),
+            ("timeseries", "TimeSeriesAgent", TimeSeriesAgent()),
             ("visualization", "VisualizationAgent", VisualizationAgent()),
             ("feature", "FeatureAgent", FeatureAgent()),
             ("stat", "StatAgent", StatAgent()),
@@ -609,6 +634,7 @@ def run_workflow_with_approval_gates():
         agent_configs = [
             ("profile", "ProfileAgent", ProfileAgent()),
             ("quality", "QualityAgent", QualityAgent()),
+            ("timeseries", "TimeSeriesAgent", TimeSeriesAgent()),
             ("visualization", "VisualizationAgent", VisualizationAgent()),
             ("feature", "FeatureAgent", FeatureAgent()),
             ("stat", "StatAgent", StatAgent())
@@ -618,6 +644,7 @@ def run_workflow_with_approval_gates():
         agent_configs = [
             ("profile", "ProfileAgent", ProfileAgent()),
             ("quality", "QualityAgent", QualityAgent()),
+            ("timeseries", "TimeSeriesAgent", TimeSeriesAgent()),
             ("feature", "FeatureAgent", FeatureAgent()),
             ("transform", "TransformAgent", TransformAgent())
         ]
@@ -713,6 +740,11 @@ def run_workflow_with_approval_gates():
             # Store result
             st.session_state.analysis_results[step_id] = result
 
+            # Special handling for TimeSeriesAgent - generate visualizations
+            if step_id == "timeseries":
+                plots = agent.generate_visualizations(handle, result["result"])
+                st.session_state.analysis_results["timeseries"]["result"]["visualizations"] = plots
+
             # Complete the step
             if step:
                 step.complete()
@@ -803,6 +835,7 @@ def display_results():
         "🎨 Visualizations",
         "🔍 Features",
         "📉 Statistics",
+        "🕒 Time Series",
         "🔧 Transformations",
         "💾 Export"
     ])
@@ -841,12 +874,18 @@ def display_results():
             st.info("Run StatAgent to see results")
 
     with tabs[6]:
+        if "timeseries" in st.session_state.analysis_results:
+            display_timeseries_results()
+        else:
+            st.info("Run TimeSeriesAgent to see results")
+
+    with tabs[7]:
         if "transform" in st.session_state.analysis_results:
             display_transform_results()
         else:
             st.info("Run TransformAgent to see results")
 
-    with tabs[7]:
+    with tabs[8]:
         display_export_options()
 
 
@@ -856,7 +895,7 @@ def display_overview():
 
     # Count completed agents
     completed = len(st.session_state.analysis_results)
-    total = 6
+    total = 7
 
     col1, col2, col3 = st.columns(3)
 
@@ -1210,6 +1249,206 @@ def display_stat_results():
         with st.expander("🧠 Agent Reasoning"):
             st.markdown(f"**Reasoning:** {result['reasoning']}")
             st.markdown(f"**Impact:** {result['impact']}")
+            st.markdown("**Recommendations:**")
+            for rec in result['recommendations']:
+                st.markdown(f"- {rec}")
+
+
+def display_timeseries_results():
+    """Display time series analysis results"""
+    st.header("🕒 Time Series Analysis")
+
+    result = st.session_state.analysis_results["timeseries"]
+    data = result["result"]
+
+    # Check if datetime columns were detected
+    if not data.get("datetime_columns"):
+        st.warning("⚠️ No datetime columns detected in the dataset")
+        st.info(data.get("message", "Time series analysis requires temporal data"))
+
+        # Show suggestions
+        if data.get("suggestion"):
+            st.markdown("**💡 Suggestion:**")
+            st.markdown(data["suggestion"])
+
+        # Show explainability
+        if st.session_state.get("show_reasoning", True):
+            with st.expander("🧠 Agent Reasoning"):
+                st.markdown(f"**Reasoning:** {result['reasoning']}")
+                st.markdown(f"**Impact:** {result['impact']}")
+                st.markdown("**Recommendations:**")
+                for rec in result['recommendations']:
+                    st.markdown(f"- {rec}")
+        return
+
+    # Summary metrics
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Datetime Columns", len(data["datetime_columns"]))
+    with col2:
+        st.metric("Total Rows", f"{data['total_rows']:,}")
+    with col3:
+        st.metric("Sample Size", f"{data['sample_size']:,}")
+    with col4:
+        profiles_count = len(data.get("temporal_profiles", {}))
+        st.metric("Profiles Analyzed", profiles_count)
+
+    st.divider()
+
+    # Temporal Profiles
+    if data.get("temporal_profiles"):
+        st.subheader("⏰ Temporal Profiles")
+
+        for col, profile in data["temporal_profiles"].items():
+            if "error" in profile:
+                st.warning(f"**{col}**: {profile.get('message', 'Analysis failed')}")
+                continue
+
+            with st.expander(f"📅 {col}", expanded=True):
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.markdown("**Date Range**")
+                    st.info(f"{profile.get('min_date', 'N/A')} to {profile.get('max_date', 'N/A')}")
+                    st.metric("Span (days)", profile.get("date_range_days", 0))
+
+                with col2:
+                    st.markdown("**Frequency & Coverage**")
+                    st.info(f"Inferred: {profile.get('inferred_frequency', 'unknown')}")
+                    if 'coverage_percentage' in profile:
+                        st.metric("Coverage", f"{profile['coverage_percentage']:.1f}%")
+
+                with col3:
+                    st.markdown("**Data Quality**")
+                    gaps = profile.get('gaps_detected', 0)
+                    dups = profile.get('duplicate_timestamps', 0)
+
+                    if gaps > 0:
+                        st.warning(f"⚠️ Gaps: {gaps} ({profile.get('gap_percentage', 0):.1f}%)")
+                    else:
+                        st.success("✅ No gaps detected")
+
+                    if dups > 0:
+                        st.warning(f"⚠️ Duplicates: {dups} ({profile.get('duplicate_percentage', 0):.1f}%)")
+                    else:
+                        st.success("✅ No duplicates")
+
+    st.divider()
+
+    # Trend & Seasonality
+    if data.get("decompositions"):
+        st.subheader("📈 Trend & Seasonality Analysis")
+
+        for key, decomp in data["decompositions"].items():
+            if "error" in decomp:
+                st.warning(f"**{key}**: {decomp.get('message', 'Decomposition failed')}")
+                continue
+
+            with st.expander(f"📊 {key}", expanded=True):
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.markdown("**Trend**")
+                    direction = decomp["trend"]["direction"]
+                    if direction == "upward":
+                        st.success(f"📈 {direction.title()}")
+                    elif direction == "downward":
+                        st.error(f"📉 {direction.title()}")
+                    else:
+                        st.info(f"➡️ {direction.title()}")
+                    st.metric("Mean", f"{decomp['trend']['mean']:.2f}")
+                    st.metric("Std Dev", f"{decomp['trend']['std']:.2f}")
+
+                with col2:
+                    st.markdown("**Seasonality**")
+                    seasonal_strength = decomp["seasonal"]["strength"]
+                    st.metric("Strength", f"{seasonal_strength:.3f}")
+
+                    if seasonal_strength > 0.3:
+                        st.success("🔄 Strong seasonality")
+                    elif seasonal_strength > 0.1:
+                        st.info("🔄 Moderate seasonality")
+                    else:
+                        st.warning("🔄 Weak seasonality")
+
+                    st.metric("Period", f"{decomp['period_used']} obs")
+
+                with col3:
+                    st.markdown("**Residual**")
+                    st.metric("Mean", f"{decomp['residual']['mean']:.2f}")
+                    st.metric("Std Dev", f"{decomp['residual']['std']:.2f}")
+
+    st.divider()
+
+    # Stationarity Tests
+    if data.get("stationarity_tests"):
+        st.subheader("🔬 Stationarity Tests")
+
+        for col, test in data["stationarity_tests"].items():
+            if "error" in test:
+                st.warning(f"**{col}**: {test.get('message', 'Test failed')}")
+                continue
+
+            with st.expander(f"📉 {col}", expanded=True):
+                col1, col2, col3 = st.columns(3)
+
+                with col1:
+                    st.markdown("**Test Result**")
+                    interpretation = test.get("interpretation", "Unknown")
+                    is_stationary = test.get("is_stationary", False)
+
+                    if is_stationary:
+                        st.success(f"✅ {interpretation}")
+                        st.info("Suitable for ARIMA modeling")
+                    else:
+                        st.warning(f"⚠️ {interpretation}")
+                        st.info("May need differencing")
+
+                with col2:
+                    st.markdown("**Statistics**")
+                    st.metric("ADF Statistic", f"{test.get('adf_statistic', 0):.4f}")
+                    st.metric("P-value", f"{test.get('p_value', 0):.4f}")
+
+                    if test.get('p_value', 1) < 0.05:
+                        st.success("p < 0.05: Reject null hypothesis")
+                    else:
+                        st.warning("p ≥ 0.05: Cannot reject null hypothesis")
+
+                with col3:
+                    st.markdown("**Critical Values**")
+                    crit_vals = test.get("critical_values", {})
+                    for level, val in crit_vals.items():
+                        st.metric(f"{level}", f"{val:.4f}")
+
+    st.divider()
+
+    # Visualizations
+    if data.get("visualizations"):
+        st.subheader("📊 Visualizations")
+
+        for plot in data["visualizations"]:
+            st.markdown(f"**{plot.get('description', 'Visualization')}**")
+
+            # Load and display HTML visualization
+            try:
+                plot_path = Path(plot["path"])
+                if plot_path.exists():
+                    with open(plot_path, 'r', encoding='utf-8') as f:
+                        html_content = f.read()
+                    st.components.v1.html(html_content, height=600, scrolling=True)
+                else:
+                    st.warning(f"Visualization file not found: {plot_path}")
+            except Exception as e:
+                st.error(f"Failed to load visualization: {str(e)}")
+
+    st.divider()
+
+    # Explainability
+    if st.session_state.get("show_reasoning", True):
+        with st.expander("🧠 Agent Reasoning", expanded=False):
+            st.markdown(f"**Reasoning:** {result['reasoning']}")
+            st.markdown(f"**Impact:** {result['impact']}")
+            st.markdown(f"**Confidence:** {result['confidence']:.0%}")
             st.markdown("**Recommendations:**")
             for rec in result['recommendations']:
                 st.markdown(f"- {rec}")
@@ -1997,8 +2236,8 @@ def main():
     st.divider()
     st.markdown("""
     <div style='text-align: center; color: #666; padding: 2rem 0;'>
-        <p><strong>EDA Pipeline - Phase 3</strong></p>
-        <p>Powered by 6 Specialized AI Agents | Built with Streamlit & LangGraph</p>
+        <p><strong>EDA Pipeline</strong></p>
+        <p>Powered by 7 Specialized AI Agents | Built with Streamlit & LangGraph</p>
     </div>
     """, unsafe_allow_html=True)
 

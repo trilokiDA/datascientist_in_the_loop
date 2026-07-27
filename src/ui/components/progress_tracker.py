@@ -283,6 +283,12 @@ AGENT_STEPS = {
         name="Statistical Tests",
         description="Running statistical tests and hypothesis testing",
         icon="📈"
+    ),
+    "timeseries": WorkflowStep(
+        id="timeseries",
+        name="Time Series Analysis",
+        description="Analyzing temporal patterns, trends, and seasonality",
+        icon="🕒"
     )
 }
 
@@ -293,19 +299,19 @@ def create_workflow_tracker(workflow_type: str) -> WorkflowProgressTracker:
     workflow_configs = {
         "quick_analysis": {
             "name": "Quick Analysis",
-            "steps": ["profile", "quality", "visualization"]
+            "steps": ["profile", "quality", "timeseries", "visualization"]
         },
         "complete_analysis": {
             "name": "Complete Analysis",
-            "steps": ["profile", "quality", "visualization", "feature", "stat", "transform"]
+            "steps": ["profile", "quality", "timeseries", "visualization", "feature", "stat", "transform"]
         },
         "deep_dive": {
             "name": "Deep Dive Analysis",
-            "steps": ["profile", "quality", "visualization", "feature", "stat"]
+            "steps": ["profile", "quality", "timeseries", "visualization", "feature", "stat"]
         },
         "ml_prep": {
             "name": "ML Preparation",
-            "steps": ["profile", "quality", "feature", "transform"]
+            "steps": ["profile", "quality", "timeseries", "feature", "transform"]
         }
     }
 

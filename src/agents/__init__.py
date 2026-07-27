@@ -5,6 +5,7 @@ from src.agents.transform_agent import TransformAgent
 from src.agents.viz_agent import VisualizationAgent
 from src.agents.feature_agent import FeatureAgent
 from src.agents.stat_agent import StatAgent
+from src.agents.time_series_agent import TimeSeriesAgent
 
 __all__ = [
     'BaseAgent',
@@ -13,5 +14,6 @@ __all__ = [
     'TransformAgent',
     'VisualizationAgent',
     'FeatureAgent',
-    'StatAgent'
+    'StatAgent',
+    'TimeSeriesAgent'
 ]
