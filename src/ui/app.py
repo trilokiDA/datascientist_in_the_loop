@@ -1,5 +1,5 @@
 """
-Phase 3 Streamlit UI - Complete EDA Pipeline with All 6 Agents
+Phase 3 Streamlit UI - Complete EDA Pipeline with All 7 Agents
 Comprehensive interface with visualizations, feature analysis, and statistical tests
 """
 
@@ -922,7 +922,8 @@ def display_overview():
         "TransformAgent": "transform" in st.session_state.analysis_results,
         "VisualizationAgent": "visualization" in st.session_state.analysis_results,
         "FeatureAgent": "feature" in st.session_state.analysis_results,
-        "StatAgent": "stat" in st.session_state.analysis_results
+        "StatAgent": "stat" in st.session_state.analysis_results,
+        "TimeSeriesAgent": "timeseries" in st.session_state.analysis_results
     }
 
     cols = st.columns(3)
