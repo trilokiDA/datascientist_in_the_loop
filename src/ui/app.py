@@ -130,7 +130,7 @@ if "agent_configs" not in st.session_state:
 
 def display_header():
     """Display app header"""
-    st.markdown('<div class="main-header">🚀 EDA Pipeline - Complete Agent Suite</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">👤 Data Scientist in the Loop</div>', unsafe_allow_html=True)
 
     col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 

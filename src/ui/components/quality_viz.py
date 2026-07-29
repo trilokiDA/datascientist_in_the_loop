@@ -253,11 +253,19 @@ class QualityVisualizer:
         # Create gauge chart for duplicate percentage
         duplicate_pct = duplicate_info['duplicate_percentage']
 
+        # Determine delta color: green if below reference (good), red if above (bad)
+        delta_color = "#10B981" if duplicate_pct < 5 else "#EF4444"  # Green if below 5%, red if above
+
         fig = go.Figure(go.Indicator(
             mode="gauge+number+delta",
             value=duplicate_pct,
             title={'text': "Duplicate Rows"},
-            delta={'reference': 5, 'suffix': '%'},  # Reference threshold
+            delta={
+                'reference': 5,
+                'suffix': '%',
+                'increasing': {'color': "#EF4444"},  # Red for increasing (bad)
+                'decreasing': {'color': "#10B981"}   # Green for decreasing (good)
+            },
             gauge={
                 'axis': {'range': [None, 100]},
                 'bar': {'color': "darkblue"},
@@ -583,6 +591,27 @@ def display_quality_visualizations(quality_results: Dict[str, Any], dataset_hand
     # Duplicates Section
     st.subheader("🔄 Duplicate Analysis")
 
+    # Add info box explaining the metrics
+    with st.expander("ℹ️ Understanding Duplicate Metrics"):
+        st.markdown("""
+        **Gauge Explanation:**
+
+        - **Main Value**: Your actual duplicate percentage (e.g., 0.2%)
+        - **Delta Value** (shown below main value): Difference from the 5% reference threshold
+          - 🟢 **Green/Negative**: Below reference (Good! ✅)
+          - 🔴 **Red/Positive**: Above reference (Needs attention ⚠️)
+        - **Reference (5%)**: Industry standard for acceptable duplicate levels
+        - **Red Line (10%)**: Critical threshold - duplicates above this require immediate attention
+
+        **Color Zones:**
+        - 🟢 **Green (0-5%)**: Excellent - Minimal duplicates
+        - 🟡 **Yellow (5-15%)**: Warning - Moderate duplicates
+        - 🔴 **Red (15-100%)**: Critical - High duplicate rate
+
+        **Example:**
+        - If you see **0.2%** with **-4.8%** in green → You have 0.2% duplicates, which is 4.8% better than the 5% reference! ✅
+        """)
+
     duplicates = quality_results['result'].get('duplicates', {})
     dup_fig = visualizer.create_duplicate_visualization(duplicates)
     if dup_fig:
@@ -602,9 +631,46 @@ def display_quality_visualizations(quality_results: Dict[str, Any], dataset_hand
     # Data Type Consistency
     st.subheader("🔤 Data Type Consistency")
 
+    # Check for mixed type inconsistencies (like numeric/text mix)
+    inconsistencies_data = quality_results['result'].get('inconsistencies', {})
+    mixed_type_issues = [inc for inc in inconsistencies_data.get('inconsistencies', [])
+                         if inc.get('type') == 'mixed_numeric_text']
+
+    # Check for type conversion suggestions
     data_types = quality_results['result'].get('data_types', {})
-    type_fig = visualizer.create_data_type_consistency_chart(data_types)
-    if type_fig:
-        st.plotly_chart(type_fig, use_container_width=True)
+    type_issues = data_types.get('type_issues', [])
+
+    has_any_issues = len(mixed_type_issues) > 0 or len(type_issues) > 0
+
+    if has_any_issues:
+        # Show mixed type inconsistencies
+        if mixed_type_issues:
+            st.warning(f"⚠️ Found {len(mixed_type_issues)} column(s) with mixed data types")
+
+            for issue in mixed_type_issues:
+                with st.expander(f"🔍 {issue['column']} - {issue['description']}"):
+                    st.markdown(f"""
+                    - **Column:** `{issue['column']}`
+                    - **Issue:** {issue['description']}
+                    - **Affected Rows:** {issue.get('affected_rows', 'N/A')}
+
+                    **Recommendation:** Clean the data by either:
+                    1. Converting all values to numeric (replace text with NaN or default value)
+                    2. Converting all values to text (standardize the format)
+                    3. Use TransformAgent to handle missing/inconsistent values
+                    """)
+
+        # Show type conversion suggestions
+        if type_issues:
+            st.info(f"💡 Found {len(type_issues)} column(s) that could benefit from type conversion")
+
+            for issue in type_issues:
+                with st.expander(f"📝 {issue['column']} - Suggest: {issue['suggested_type']}"):
+                    st.markdown(f"""
+                    - **Column:** `{issue['column']}`
+                    - **Current Type:** `{issue['current_type']}`
+                    - **Suggested Type:** `{issue['suggested_type']}`
+                    - **Reason:** {issue['reason']}
+                    """)
     else:
         st.success("✅ All data types are consistent!")
