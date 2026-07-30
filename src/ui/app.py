@@ -30,7 +30,8 @@ from src.ui.components import (
     display_quality_visualizations,
     display_transformation_comparison,
     ApprovalGate,
-    store_user_decision
+    store_user_decision,
+    display_token_metrics
 )
 import os
 
@@ -311,6 +312,11 @@ def display_sidebar():
         show_confidence = st.checkbox("Show Confidence", value=True)
         st.session_state.show_reasoning = show_reasoning
         st.session_state.show_confidence = show_confidence
+
+        st.divider()
+
+        # Token Usage & Cost Tracking
+        display_token_metrics()
 
 
 def run_single_agent(agent_name: str):

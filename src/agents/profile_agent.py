@@ -129,6 +129,9 @@ Provide your analysis in the specified JSON format."""
 
         response = chain.invoke({})
 
+        # Track token usage
+        self.track_chain_response(response)
+
         # Parse response
         try:
             # Extract JSON from response

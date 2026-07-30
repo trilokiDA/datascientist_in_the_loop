@@ -26,6 +26,11 @@ from .approval_gate import (
     store_user_decision
 )
 
+from .token_metrics import (
+    display_token_metrics,
+    display_mini_token_badge
+)
+
 __all__ = [
     "WorkflowStep",
     "WorkflowProgressTracker",
@@ -38,5 +43,7 @@ __all__ = [
     "TransformationComparison",
     "display_transformation_comparison",
     "ApprovalGate",
-    "store_user_decision"
+    "store_user_decision",
+    "display_token_metrics",
+    "display_mini_token_badge"
 ]
