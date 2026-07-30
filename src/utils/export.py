@@ -213,8 +213,13 @@ class ExportManager:
     </style>
 </head>
 <body>
+    <!-- Go to Top Button -->
+    <button id="goToTopBtn" class="go-to-top" onclick="scrollToTop()" title="Go to top">
+        ⬆️ Top
+    </button>
+
     <div class="container">
-        <header>
+        <header id="top">
             <h1>🚀 EDA Analysis Report</h1>
             <div class="metadata">
                 <p><strong>Generated:</strong> {timestamp}</p>
@@ -250,6 +255,28 @@ class ExportManager:
             <p>Powered by 7 Specialized AI Agents | Built with Streamlit & LangGraph</p>
         </footer>
     </div>
+
+    <script>
+        // Get the button
+        var goToTopBtn = document.getElementById("goToTopBtn");
+
+        // Show button when user scrolls down 300px from the top
+        window.onscroll = function() {{
+            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {{
+                goToTopBtn.style.display = "block";
+            }} else {{
+                goToTopBtn.style.display = "none";
+            }}
+        }};
+
+        // Smooth scroll to top
+        function scrollToTop() {{
+            window.scrollTo({{
+                top: 0,
+                behavior: 'smooth'
+            }});
+        }}
+    </script>
 </body>
 </html>
 """
@@ -469,6 +496,37 @@ class ExportManager:
             background-color: #28a745;
             color: white;
         }
+
+        /* Go to Top Button */
+        .go-to-top {
+            display: none;
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 99;
+            border: none;
+            outline: none;
+            background-color: #1f77b4;
+            color: white;
+            cursor: pointer;
+            padding: 15px 20px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 600;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        .go-to-top:hover {
+            background-color: #155a8a;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+        }
+
+        .go-to-top:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
         """
 
     def _generate_overview_section(
@@ -572,6 +630,262 @@ class ExportManager:
 
         return html
 
+    def _create_column_type_chart(self, profile_data: Dict[str, Any]) -> Optional[str]:
+        """Create column type distribution pie chart"""
+        try:
+            col_types = profile_data.get('column_types', {})
+
+            labels = []
+            values = []
+
+            if col_types.get('numeric'):
+                labels.append('Numeric')
+                values.append(len(col_types['numeric']))
+
+            if col_types.get('categorical'):
+                labels.append('Categorical')
+                values.append(len(col_types['categorical']))
+
+            if col_types.get('datetime'):
+                labels.append('Datetime')
+                values.append(len(col_types['datetime']))
+
+            if not values:
+                return None
+
+            fig = go.Figure(data=[go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.3,
+                marker=dict(colors=['#3B82F6', '#10B981', '#F59E0B'])
+            )])
+
+            fig.update_layout(
+                title="Column Type Distribution",
+                height=400,
+                showlegend=True
+            )
+
+            return fig.to_json()
+        except:
+            return None
+
+    def _create_missing_values_chart(self, profile_data: Dict[str, Any]) -> Optional[str]:
+        """Create missing values bar chart"""
+        try:
+            missing_info = profile_data.get('missing_info', {})
+
+            if not missing_info:
+                return None
+
+            # Get top 10 columns with missing values
+            cols_with_missing = [(col, info['percentage']) for col, info in missing_info.items()
+                                if info['percentage'] > 0]
+            cols_with_missing.sort(key=lambda x: x[1], reverse=True)
+            cols_with_missing = cols_with_missing[:10]
+
+            if not cols_with_missing:
+                return None
+
+            columns = [item[0] for item in cols_with_missing]
+            percentages = [item[1] for item in cols_with_missing]
+
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=columns,
+                    y=percentages,
+                    marker=dict(
+                        color=percentages,
+                        colorscale='Reds',
+                        showscale=True,
+                        colorbar=dict(title="Missing %")
+                    ),
+                    text=[f"{p:.1f}%" for p in percentages],
+                    textposition='outside'
+                )
+            ])
+
+            fig.update_layout(
+                title="Top 10 Columns with Missing Values",
+                xaxis_title="Column",
+                yaxis_title="Missing Percentage (%)",
+                height=400,
+                showlegend=False
+            )
+
+            return fig.to_json()
+        except:
+            return None
+
+    def _create_quality_dashboard(self, quality_data: Dict[str, Any]) -> Optional[str]:
+        """Create quality summary dashboard with 4 indicators"""
+        try:
+            from plotly.subplots import make_subplots
+
+            fig = make_subplots(
+                rows=2, cols=2,
+                specs=[
+                    [{'type': 'indicator'}, {'type': 'indicator'}],
+                    [{'type': 'indicator'}, {'type': 'indicator'}]
+                ],
+                subplot_titles=('Duplicates (%)', 'Outlier Columns', 'Inconsistencies', 'Type Issues')
+            )
+
+            # Duplicate indicator
+            dup_pct = quality_data.get('duplicates', {}).get('duplicate_percentage', 0)
+            fig.add_trace(
+                go.Indicator(
+                    mode="gauge+number",
+                    value=dup_pct,
+                    gauge={
+                        'axis': {'range': [None, 20]},
+                        'bar': {'color': "#3B82F6"},
+                        'steps': [
+                            {'range': [0, 5], 'color': "#D1FAE5"},
+                            {'range': [5, 10], 'color': "#FEF3C7"},
+                            {'range': [10, 20], 'color': "#FEE2E2"}
+                        ]
+                    },
+                    number={'suffix': '%'}
+                ),
+                row=1, col=1
+            )
+
+            # Outlier columns
+            outlier_cols = quality_data.get('outliers', {}).get('columns_with_outliers', 0)
+            fig.add_trace(
+                go.Indicator(
+                    mode="number",
+                    value=outlier_cols,
+                    number={'font': {'size': 40, 'color': "#F59E0B" if outlier_cols > 5 else "#10B981"}}
+                ),
+                row=1, col=2
+            )
+
+            # Inconsistencies
+            inconsistencies = quality_data.get('inconsistencies', {}).get('inconsistency_count', 0)
+            fig.add_trace(
+                go.Indicator(
+                    mode="number",
+                    value=inconsistencies,
+                    number={'font': {'size': 40, 'color': "#EF4444" if inconsistencies > 0 else "#10B981"}}
+                ),
+                row=2, col=1
+            )
+
+            # Type issues
+            type_issues = quality_data.get('data_types', {}).get('type_issue_count', 0)
+            fig.add_trace(
+                go.Indicator(
+                    mode="number",
+                    value=type_issues,
+                    number={'font': {'size': 40, 'color': "#3B82F6" if type_issues > 0 else "#10B981"}}
+                ),
+                row=2, col=2
+            )
+
+            fig.update_layout(
+                title="Data Quality Summary Dashboard",
+                height=500,
+                showlegend=False
+            )
+
+            return fig.to_json()
+        except:
+            return None
+
+    def _create_correlation_heatmap(self, feature_data: Dict[str, Any]) -> Optional[str]:
+        """Create correlation heatmap for top correlations"""
+        try:
+            correlations = feature_data.get('correlations', {})
+            strong_corr = correlations.get('strong_correlations', [])
+            moderate_corr = correlations.get('moderate_correlations', [])
+
+            # Combine and take top 15
+            all_corr = strong_corr + moderate_corr
+            all_corr = all_corr[:15]
+
+            if not all_corr:
+                return None
+
+            # Create matrix for heatmap
+            features = list(set([c['feature1'] for c in all_corr] + [c['feature2'] for c in all_corr]))
+
+            # Simple bar chart instead of heatmap for better readability
+            pairs = [f"{c['feature1']} - {c['feature2']}" for c in all_corr]
+            values = [c['correlation'] for c in all_corr]
+
+            fig = go.Figure(data=[
+                go.Bar(
+                    y=pairs,
+                    x=values,
+                    orientation='h',
+                    marker=dict(
+                        color=values,
+                        colorscale='RdBu',
+                        cmid=0,
+                        showscale=True,
+                        colorbar=dict(title="Correlation")
+                    ),
+                    text=[f"{v:.2f}" for v in values],
+                    textposition='outside'
+                )
+            ])
+
+            fig.update_layout(
+                title="Top Feature Correlations",
+                xaxis_title="Correlation Coefficient",
+                yaxis_title="Feature Pairs",
+                height=max(400, len(pairs) * 30),
+                showlegend=False
+            )
+
+            return fig.to_json()
+        except:
+            return None
+
+    def _create_outlier_distribution_chart(self, quality_data: Dict[str, Any]) -> Optional[str]:
+        """Create outlier distribution chart"""
+        try:
+            outliers = quality_data.get('outliers', {})
+            outlier_details = outliers.get('outlier_details', {})
+
+            if not outlier_details:
+                return None
+
+            # Get top 10 columns with outliers
+            items = list(outlier_details.items())[:10]
+            columns = [item[0] for item in items]
+            outlier_counts = [item[1]['iqr_outliers'] for item in items]
+            percentages = [item[1]['iqr_percentage'] for item in items]
+
+            fig = go.Figure(data=[
+                go.Bar(
+                    x=columns,
+                    y=outlier_counts,
+                    marker=dict(
+                        color=percentages,
+                        colorscale='Oranges',
+                        showscale=True,
+                        colorbar=dict(title="Outlier %")
+                    ),
+                    text=[f"{p:.1f}%" for p in percentages],
+                    textposition='outside'
+                )
+            ])
+
+            fig.update_layout(
+                title="Top 10 Columns with Outliers",
+                xaxis_title="Column",
+                yaxis_title="Number of Outliers",
+                height=400,
+                showlegend=False
+            )
+
+            return fig.to_json()
+        except:
+            return None
+
     def _generate_profile_html(self, result: Dict[str, Any]) -> str:
         """Generate profile section HTML"""
         data = result.get('result', {})
@@ -635,6 +949,29 @@ class ExportManager:
         """
 
         html += "</div>"
+
+        # Add interactive charts
+        col_type_chart = self._create_column_type_chart(data)
+        if col_type_chart:
+            chart_id = "profile_col_types"
+            html += f"""
+            <div class="chart-container" id="{chart_id}"></div>
+            <script>
+                var chartData = {col_type_chart};
+                Plotly.newPlot('{chart_id}', chartData.data, chartData.layout, {{responsive: true}});
+            </script>
+            """
+
+        missing_chart = self._create_missing_values_chart(data)
+        if missing_chart:
+            chart_id = "profile_missing_values"
+            html += f"""
+            <div class="chart-container" id="{chart_id}"></div>
+            <script>
+                var chartData = {missing_chart};
+                Plotly.newPlot('{chart_id}', chartData.data, chartData.layout, {{responsive: true}});
+            </script>
+            """
 
         return html
 
@@ -713,6 +1050,30 @@ class ExportManager:
                     </tbody>
                 </table>
             </div>
+            """
+
+        # Add interactive quality dashboard
+        quality_dashboard = self._create_quality_dashboard(data)
+        if quality_dashboard:
+            chart_id = "quality_dashboard"
+            html += f"""
+            <div class="chart-container" id="{chart_id}"></div>
+            <script>
+                var chartData = {quality_dashboard};
+                Plotly.newPlot('{chart_id}', chartData.data, chartData.layout, {{responsive: true}});
+            </script>
+            """
+
+        # Add outlier distribution chart
+        outlier_chart = self._create_outlier_distribution_chart(data)
+        if outlier_chart:
+            chart_id = "quality_outliers"
+            html += f"""
+            <div class="chart-container" id="{chart_id}"></div>
+            <script>
+                var chartData = {outlier_chart};
+                Plotly.newPlot('{chart_id}', chartData.data, chartData.layout, {{responsive: true}});
+            </script>
             """
 
         return html
@@ -800,6 +1161,18 @@ class ExportManager:
         """
 
         html += "</div>"
+
+        # Add correlation heatmap
+        corr_heatmap = self._create_correlation_heatmap(data)
+        if corr_heatmap:
+            chart_id = "feature_correlations"
+            html += f"""
+            <div class="chart-container" id="{chart_id}"></div>
+            <script>
+                var chartData = {corr_heatmap};
+                Plotly.newPlot('{chart_id}', chartData.data, chartData.layout, {{responsive: true}});
+            </script>
+            """
 
         return html
 
