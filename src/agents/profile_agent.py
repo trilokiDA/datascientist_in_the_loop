@@ -1,8 +1,9 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import json
 from src.agents.base_agent import BaseAgent
 from src.data.dataset_handle import DatasetHandle
 from src.utils.types import AgentResponse
+from src.config import QualityThresholds
 
 
 class ProfileAgent(BaseAgent):
@@ -20,11 +21,27 @@ class ProfileAgent(BaseAgent):
 
         Returns structured analysis with reasoning and impact
         """
+        # Get thresholds from context or use defaults
+        thresholds = context.get('thresholds') if context else None
+        if thresholds is None:
+            thresholds = QualityThresholds()
+
         # Get comprehensive profile from dataset handle
-        profile_summary = dataset_handle.get_profile_summary()
+        profile_summary = dataset_handle.get_profile_summary(
+            missing_threshold=thresholds.missing_value_threshold,
+            high_cardinality_threshold=thresholds.high_cardinality_threshold,
+            low_cardinality_threshold=thresholds.low_cardinality_threshold
+        )
+
+        # Store thresholds in result for display
+        profile_summary['thresholds_used'] = {
+            'missing_value_threshold': thresholds.missing_value_threshold,
+            'high_cardinality_threshold': thresholds.high_cardinality_threshold,
+            'low_cardinality_threshold': thresholds.low_cardinality_threshold
+        }
 
         # Create context for LLM
-        analysis_context = self._prepare_context(profile_summary, dataset_handle.mode)
+        analysis_context = self._prepare_context(profile_summary, dataset_handle.mode, thresholds)
 
         # Get LLM interpretation with explainability
         llm_response = self._get_llm_interpretation(analysis_context)
@@ -38,7 +55,7 @@ class ProfileAgent(BaseAgent):
             confidence=llm_response["confidence"]
         )
 
-    def _prepare_context(self, profile_summary: Dict[str, Any], mode: str) -> str:
+    def _prepare_context(self, profile_summary: Dict[str, Any], mode: str, thresholds: QualityThresholds) -> str:
         """Prepare context string for LLM"""
         basic_info = profile_summary["basic_info"]
         column_types = profile_summary["column_types"]
@@ -57,11 +74,13 @@ Column Types:
 - Datetime: {len(column_types['datetime'])} columns
 - Other: {len(column_types['other'])} columns
 
-Detected Issues:
-- High missing value columns (>40%): {len(issues['high_missing_cols'])} columns
+Detected Issues (using thresholds: missing>{thresholds.missing_value_threshold}%, high_card>{thresholds.high_cardinality_threshold}%, low_card<{thresholds.low_cardinality_threshold}%):
+- High missing value columns: {len(issues['high_missing_cols'])} columns
   {issues['high_missing_cols'][:3] if issues['high_missing_cols'] else 'None'}
-- High cardinality columns (>90% unique): {len(issues['high_cardinality_cols'])} columns
+- High cardinality columns: {len(issues['high_cardinality_cols'])} columns
   {issues['high_cardinality_cols'][:3] if issues['high_cardinality_cols'] else 'None'}
+- Low cardinality columns: {len(issues.get('low_cardinality_cols', []))} columns
+  {issues.get('low_cardinality_cols', [])[:3] if issues.get('low_cardinality_cols') else 'None'}
 
 Missing Value Summary:
 {self._format_missing_summary(profile_summary['missing_info'])}
