@@ -33,6 +33,7 @@ from src.ui.components import (
     store_user_decision,
     display_token_metrics
 )
+from src.config import QualityThresholds
 import os
 
 # Page config
@@ -128,6 +129,12 @@ if "user_decisions" not in st.session_state:
 if "agent_configs" not in st.session_state:
     st.session_state.agent_configs = []
 
+if "quality_thresholds" not in st.session_state:
+    st.session_state.quality_thresholds = QualityThresholds()
+
+if "threshold_version" not in st.session_state:
+    st.session_state.threshold_version = 0
+
 
 def display_header():
     """Display app header"""
@@ -152,6 +159,17 @@ def display_header():
 
 
     st.divider()
+
+
+def clear_threshold_widget_state():
+    """Clear all threshold slider widget states to force UI update"""
+    threshold_widget_keys = [
+        'missing_slider', 'high_card_slider', 'low_card_slider',
+        'iqr_input', 'z_input', 'strong_corr_slider', 'moderate_corr_slider'
+    ]
+    for key in threshold_widget_keys:
+        if key in st.session_state:
+            del st.session_state[key]
 
 
 def display_sidebar():
@@ -313,6 +331,142 @@ def display_sidebar():
         st.session_state.show_reasoning = show_reasoning
         st.session_state.show_confidence = show_confidence
 
+        # Quality Thresholds Configuration
+        with st.expander("🎯 Quality Thresholds", expanded=False):
+            st.caption("Configure sensitivity for data quality checks")
+
+            # Get current thresholds
+            current_thresholds = st.session_state.quality_thresholds
+
+            # Preset profiles
+            st.markdown("**Quick Presets:**")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("🔴 Strict", use_container_width=True, help="Low tolerance for issues", key="preset_strict"):
+                    st.session_state.quality_thresholds = QualityThresholds.strict_preset()
+                    st.session_state.threshold_version += 1
+                    clear_threshold_widget_state()
+                    st.rerun()
+            with col2:
+                if st.button("🟡 Balanced", use_container_width=True, help="Default settings", key="preset_balanced"):
+                    st.session_state.quality_thresholds = QualityThresholds.balanced_preset()
+                    st.session_state.threshold_version += 1
+                    clear_threshold_widget_state()
+                    st.rerun()
+            with col3:
+                if st.button("🟢 Permissive", use_container_width=True, help="High tolerance", key="preset_permissive"):
+                    st.session_state.quality_thresholds = QualityThresholds.permissive_preset()
+                    st.session_state.threshold_version += 1
+                    clear_threshold_widget_state()
+                    st.rerun()
+
+            st.divider()
+
+            # Tabbed threshold configuration
+            tab1, tab2, tab3 = st.tabs(["📊 Missing & Cardinality", "🔍 Outliers", "🔗 Correlations"])
+
+            with tab1:
+                st.markdown("**Missing Data**")
+                missing_threshold = st.slider(
+                    "High Missing % Threshold",
+                    min_value=0.0, max_value=100.0,
+                    value=float(current_thresholds.missing_value_threshold),
+                    step=5.0,
+                    help="Flag columns with missing values above this percentage",
+                    key=f"missing_slider_v{st.session_state.threshold_version}"
+                )
+
+                st.markdown("**Cardinality**")
+                high_card_threshold = st.slider(
+                    "High Cardinality % Threshold",
+                    min_value=0.0, max_value=100.0,
+                    value=float(current_thresholds.high_cardinality_threshold),
+                    step=5.0,
+                    help="Flag columns with unique values above this percentage (e.g., IDs)",
+                    key=f"high_card_slider_v{st.session_state.threshold_version}"
+                )
+                low_card_threshold = st.slider(
+                    "Low Cardinality % Threshold",
+                    min_value=0.0, max_value=50.0,
+                    value=float(current_thresholds.low_cardinality_threshold),
+                    step=1.0,
+                    help="Flag columns with few unique values below this percentage",
+                    key=f"low_card_slider_v{st.session_state.threshold_version}"
+                )
+
+            with tab2:
+                st.markdown("**IQR Method**")
+                iqr_multiplier = st.number_input(
+                    "IQR Outlier Multiplier",
+                    min_value=0.5, max_value=5.0,
+                    value=float(current_thresholds.iqr_multiplier),
+                    step=0.5,
+                    help="IQR method: 1.5=standard, 3.0=extreme outliers only",
+                    key=f"iqr_input_v{st.session_state.threshold_version}"
+                )
+                st.caption(f"Will flag values outside [Q1 - {iqr_multiplier}×IQR, Q3 + {iqr_multiplier}×IQR]")
+
+                st.markdown("**Z-Score Method**")
+                z_threshold = st.number_input(
+                    "Z-Score Threshold",
+                    min_value=1.0, max_value=5.0,
+                    value=float(current_thresholds.z_score_threshold),
+                    step=0.5,
+                    help="Number of standard deviations for outlier detection",
+                    key=f"z_input_v{st.session_state.threshold_version}"
+                )
+                st.caption(f"Will flag values with |z-score| > {z_threshold}σ")
+
+            with tab3:
+                st.markdown("**Correlation Thresholds**")
+                strong_corr = st.slider(
+                    "Strong Correlation Threshold",
+                    min_value=0.5, max_value=1.0,
+                    value=float(current_thresholds.strong_correlation_threshold),
+                    step=0.05,
+                    help="Minimum |r| to classify as strong correlation",
+                    key=f"strong_corr_slider_v{st.session_state.threshold_version}"
+                )
+                moderate_corr = st.slider(
+                    "Moderate Correlation Threshold",
+                    min_value=0.3, max_value=0.7,
+                    value=float(current_thresholds.moderate_correlation_threshold),
+                    step=0.05,
+                    help="Minimum |r| to classify as moderate correlation",
+                    key=f"moderate_corr_slider_v{st.session_state.threshold_version}"
+                )
+
+                st.caption(f"Strong: |r| > {strong_corr}, Moderate: {moderate_corr} < |r| ≤ {strong_corr}")
+
+            st.divider()
+
+            # Apply/Reset buttons
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Reset to Defaults", use_container_width=True):
+                    st.session_state.quality_thresholds = QualityThresholds()
+                    st.session_state.threshold_version += 1
+                    clear_threshold_widget_state()
+                    st.rerun()
+            with col2:
+                if st.button("💾 Apply Thresholds", use_container_width=True, type="primary"):
+                    # Create new thresholds from slider values
+                    try:
+                        new_thresholds = QualityThresholds(
+                            missing_value_threshold=missing_threshold,
+                            high_cardinality_threshold=high_card_threshold,
+                            low_cardinality_threshold=low_card_threshold,
+                            iqr_multiplier=iqr_multiplier,
+                            z_score_threshold=z_threshold,
+                            strong_correlation_threshold=strong_corr,
+                            moderate_correlation_threshold=moderate_corr,
+                        )
+                        new_thresholds.validate()
+                        st.session_state.quality_thresholds = new_thresholds
+                        st.success("✅ Thresholds updated successfully!")
+                    except ValueError as e:
+                        st.error(f"❌ Invalid thresholds: {str(e)}")
+
         st.divider()
 
         # Token Usage & Cost Tracking
@@ -350,17 +504,18 @@ def run_single_agent(agent_name: str):
             tracker.render_compact()
 
         try:
-            # Get context from previous results
+            # Get context from previous results and add thresholds
             context = {
                 "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
                 "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
-                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result"),
+                "thresholds": st.session_state.quality_thresholds
             }
 
             # Run agent
             if agent_name == "ProfileAgent":
                 agent = ProfileAgent()
-                result = agent.analyze(handle)
+                result = agent.analyze(handle, context)
                 st.session_state.analysis_results["profile"] = result
 
             elif agent_name == "QualityAgent":
@@ -454,11 +609,12 @@ def run_complete_analysis():
             tracker.render()
 
         try:
-            # Get context
+            # Get context with thresholds
             context = {
                 "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
                 "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
-                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result"),
+                "thresholds": st.session_state.quality_thresholds
             }
 
             # Run agent
@@ -733,11 +889,12 @@ def run_workflow_with_approval_gates():
                 tracker.render()
 
         try:
-            # Get context
+            # Get context with thresholds
             context = {
                 "profile_results": st.session_state.analysis_results.get("profile", {}).get("result"),
                 "quality_results": st.session_state.analysis_results.get("quality", {}).get("result"),
-                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result")
+                "feature_results": st.session_state.analysis_results.get("feature", {}).get("result"),
+                "thresholds": st.session_state.quality_thresholds
             }
 
             # Run agent

@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import json
 import numpy as np
 import pandas as pd
@@ -6,6 +6,7 @@ from scipy import stats
 from src.agents.base_agent import BaseAgent
 from src.data.dataset_handle import DatasetHandle
 from src.utils.types import AgentResponse
+from src.config import QualityThresholds
 
 
 class QualityAgent(BaseAgent):
@@ -23,8 +24,13 @@ class QualityAgent(BaseAgent):
 
         Returns structured analysis with reasoning and impact
         """
+        # Get thresholds from context or use defaults
+        thresholds = context.get('thresholds') if context else None
+        if thresholds is None:
+            thresholds = QualityThresholds()
+
         # Perform quality checks
-        quality_summary = self._perform_quality_checks(dataset_handle)
+        quality_summary = self._perform_quality_checks(dataset_handle, thresholds)
 
         # Create context for LLM
         analysis_context = self._prepare_context(quality_summary, context)
@@ -41,7 +47,7 @@ class QualityAgent(BaseAgent):
             confidence=llm_response["confidence"]
         )
 
-    def _perform_quality_checks(self, dataset_handle: DatasetHandle) -> Dict[str, Any]:
+    def _perform_quality_checks(self, dataset_handle: DatasetHandle, thresholds: QualityThresholds) -> Dict[str, Any]:
         """Perform comprehensive quality checks"""
 
         # Get sample data for analysis
@@ -52,10 +58,15 @@ class QualityAgent(BaseAgent):
             "sample_size": len(df_sample),
             "total_rows": dataset_handle.shape[0],
             "duplicates": self._check_duplicates(df_sample, dataset_handle.shape[0]),
-            "outliers": self._detect_outliers(df_sample),
-            "inconsistencies": self._check_inconsistencies(df_sample),
+            "outliers": self._detect_outliers(df_sample, thresholds),
+            "inconsistencies": self._check_inconsistencies(df_sample, thresholds),
             "data_types": self._validate_data_types(df_sample),
-            "value_ranges": self._check_value_ranges(df_sample)
+            "value_ranges": self._check_value_ranges(df_sample),
+            "thresholds_used": {
+                'iqr_multiplier': thresholds.iqr_multiplier,
+                'z_score_threshold': thresholds.z_score_threshold,
+                'format_variance_threshold': thresholds.format_variance_threshold
+            }
         }
 
         return quality_summary
@@ -75,7 +86,7 @@ class QualityAgent(BaseAgent):
             "has_duplicates": bool(duplicate_count > 0)
         }
 
-    def _detect_outliers(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def _detect_outliers(self, df: pd.DataFrame, thresholds: QualityThresholds) -> Dict[str, Any]:
         """Detect outliers using IQR and Z-score methods"""
         outliers = {}
 
@@ -85,18 +96,18 @@ class QualityAgent(BaseAgent):
             if df[col].notna().sum() == 0:
                 continue
 
-            # IQR method
+            # IQR method with configurable multiplier
             Q1 = df[col].quantile(0.25)
             Q3 = df[col].quantile(0.75)
             IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
+            lower_bound = Q1 - thresholds.iqr_multiplier * IQR
+            upper_bound = Q3 + thresholds.iqr_multiplier * IQR
 
             iqr_outliers = ((df[col] < lower_bound) | (df[col] > upper_bound)).sum()
 
-            # Z-score method
+            # Z-score method with configurable threshold
             z_scores = np.abs(stats.zscore(df[col].dropna()))
-            z_outliers = (z_scores > 3).sum()
+            z_outliers = (z_scores > thresholds.z_score_threshold).sum()
 
             if iqr_outliers > 0 or z_outliers > 0:
                 outliers[col] = {
@@ -116,7 +127,7 @@ class QualityAgent(BaseAgent):
             "has_outliers": len(outliers) > 0
         }
 
-    def _check_inconsistencies(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def _check_inconsistencies(self, df: pd.DataFrame, thresholds: QualityThresholds) -> Dict[str, Any]:
         """Check for data inconsistencies"""
         inconsistencies = []
 
@@ -140,10 +151,10 @@ class QualityAgent(BaseAgent):
             except:
                 pass
 
-            # Check for inconsistent formatting (e.g., dates, phone numbers)
+            # Check for inconsistent formatting (e.g., dates, phone numbers) using configurable threshold
             if df[col].notna().sum() > 0:
                 value_lengths = df[col].dropna().astype(str).str.len()
-                if value_lengths.std() > value_lengths.mean() * 0.5:  # High variance in length
+                if value_lengths.std() > value_lengths.mean() * thresholds.format_variance_threshold:
                     inconsistencies.append({
                         "column": col,
                         "type": "inconsistent_format",

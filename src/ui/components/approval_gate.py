@@ -55,6 +55,10 @@ class ApprovalGate:
         # Additional Details (collapsible)
         self._render_detailed_results()
 
+        # Contextual Threshold Adjustment (for profile and quality agents)
+        if self.step_id in ["profile", "quality"]:
+            self._render_threshold_adjustment()
+
         # Decision Prompt
         st.markdown("")  # Spacing
         st.markdown("---")
@@ -176,6 +180,15 @@ class ApprovalGate:
             st.markdown(f"- Categorical: {len(types.get('categorical', []))}")
             st.markdown(f"- Datetime: {len(types.get('datetime', []))}")
 
+        # Thresholds used
+        thresholds = data.get('thresholds_used', {})
+        if thresholds:
+            st.markdown("---")
+            st.markdown("**🎯 Thresholds Applied**")
+            st.caption(f"Missing: >{thresholds.get('missing_value_threshold', 40)}% | "
+                      f"High Card: >{thresholds.get('high_cardinality_threshold', 90)}% | "
+                      f"Low Card: <{thresholds.get('low_cardinality_threshold', 5)}%")
+
         # Issues
         issues = data.get('issues', {})
         if issues:
@@ -204,6 +217,15 @@ class ApprovalGate:
 
             type_issues = data.get('data_types', {}).get('type_issue_count', 0)
             st.markdown(f"- Type Issues: {type_issues}")
+
+        # Thresholds used
+        thresholds = data.get('thresholds_used', {})
+        if thresholds:
+            st.markdown("---")
+            st.markdown("**🎯 Thresholds Applied**")
+            st.caption(f"IQR: {thresholds.get('iqr_multiplier', 1.5)}x | "
+                      f"Z-Score: {thresholds.get('z_score_threshold', 3.0)}σ | "
+                      f"Format Variance: {thresholds.get('format_variance_threshold', 0.5)}")
 
     def _render_transform_details(self, data: Dict):
         """Render transformation-specific details"""
@@ -318,6 +340,14 @@ class ApprovalGate:
         st.markdown(f"- Numeric Features: {corr_data.get('num_numeric_features', 0)}")
         st.markdown(f"- Strong Correlations: {len(corr_data.get('strong_correlations', []))}")
 
+        # Thresholds used
+        thresholds = data.get('thresholds_used', {})
+        if thresholds:
+            st.markdown("---")
+            st.markdown("**🎯 Thresholds Applied**")
+            st.caption(f"Strong: |r| > {thresholds.get('strong_correlation_threshold', 0.7)} | "
+                      f"Moderate: |r| > {thresholds.get('moderate_correlation_threshold', 0.4)}")
+
     def _render_stat_details(self, data: Dict):
         """Render statistics-specific details"""
         col1, col2 = st.columns(2)
@@ -367,6 +397,98 @@ class ApprovalGate:
 
             if len(hyp_results) > 3:
                 st.markdown(f"*...and {len(hyp_results) - 3} more tests*")
+
+    def _render_threshold_adjustment(self):
+        """Render contextual threshold adjustment controls"""
+        with st.expander("⚙️ Adjust Thresholds & Retry", expanded=False):
+            st.caption("Not satisfied with the results? Adjust sensitivity settings and retry this agent.")
+
+            # Get current thresholds from result or session state
+            result_data = self.result.get('result', {})
+            current_thresholds = result_data.get('thresholds_used', {})
+
+            if self.step_id == "profile":
+                st.markdown("**Missing Data & Cardinality**")
+
+                missing_val = st.slider(
+                    "High Missing % Threshold",
+                    0.0, 100.0,
+                    float(current_thresholds.get('missing_value_threshold', 40.0)),
+                    5.0,
+                    key=f"adj_missing_{self.step_id}",
+                    help="Flag columns with missing values above this %"
+                )
+
+                high_card_val = st.slider(
+                    "High Cardinality % Threshold",
+                    0.0, 100.0,
+                    float(current_thresholds.get('high_cardinality_threshold', 90.0)),
+                    5.0,
+                    key=f"adj_high_card_{self.step_id}",
+                    help="Flag columns with unique values above this %"
+                )
+
+                low_card_val = st.slider(
+                    "Low Cardinality % Threshold",
+                    0.0, 50.0,
+                    float(current_thresholds.get('low_cardinality_threshold', 5.0)),
+                    1.0,
+                    key=f"adj_low_card_{self.step_id}",
+                    help="Flag columns with few unique values below this %"
+                )
+
+                if st.button("🔄 Retry with New Thresholds", type="primary", key=f"retry_thresh_{self.step_id}"):
+                    # Store adjusted thresholds
+                    if 'quality_thresholds' in st.session_state:
+                        from src.config import QualityThresholds
+                        current = st.session_state.quality_thresholds
+                        st.session_state.quality_thresholds = QualityThresholds(
+                            missing_value_threshold=missing_val,
+                            high_cardinality_threshold=high_card_val,
+                            low_cardinality_threshold=low_card_val,
+                            iqr_multiplier=current.iqr_multiplier,
+                            z_score_threshold=current.z_score_threshold,
+                            strong_correlation_threshold=current.strong_correlation_threshold,
+                            moderate_correlation_threshold=current.moderate_correlation_threshold
+                        )
+                    st.info("✅ Thresholds updated! Click 'Retry This Agent' button below to re-run analysis.")
+
+            elif self.step_id == "quality":
+                st.markdown("**Outlier Detection**")
+
+                iqr_val = st.number_input(
+                    "IQR Outlier Multiplier",
+                    0.5, 5.0,
+                    float(current_thresholds.get('iqr_multiplier', 1.5)),
+                    0.5,
+                    key=f"adj_iqr_{self.step_id}",
+                    help="IQR method: 1.5=standard, 3.0=extreme"
+                )
+
+                z_val = st.number_input(
+                    "Z-Score Threshold",
+                    1.0, 5.0,
+                    float(current_thresholds.get('z_score_threshold', 3.0)),
+                    0.5,
+                    key=f"adj_z_{self.step_id}",
+                    help="Standard deviations for outlier detection"
+                )
+
+                if st.button("🔄 Retry with New Thresholds", type="primary", key=f"retry_thresh_{self.step_id}"):
+                    # Store adjusted thresholds
+                    if 'quality_thresholds' in st.session_state:
+                        from src.config import QualityThresholds
+                        current = st.session_state.quality_thresholds
+                        st.session_state.quality_thresholds = QualityThresholds(
+                            missing_value_threshold=current.missing_value_threshold,
+                            high_cardinality_threshold=current.high_cardinality_threshold,
+                            low_cardinality_threshold=current.low_cardinality_threshold,
+                            iqr_multiplier=iqr_val,
+                            z_score_threshold=z_val,
+                            strong_correlation_threshold=current.strong_correlation_threshold,
+                            moderate_correlation_threshold=current.moderate_correlation_threshold
+                        )
+                    st.info("✅ Thresholds updated! Click 'Retry This Agent' button below to re-run analysis.")
 
     def _render_decision_buttons(self) -> Optional[str]:
         """Render decision buttons and return user choice"""

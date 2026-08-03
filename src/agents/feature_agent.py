@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 import json
 import numpy as np
 import pandas as pd
@@ -7,6 +7,7 @@ from sklearn.preprocessing import LabelEncoder
 from src.agents.base_agent import BaseAgent
 from src.data.dataset_handle import DatasetHandle
 from src.utils.types import AgentResponse
+from src.config import QualityThresholds
 
 
 class FeatureAgent(BaseAgent):
@@ -45,6 +46,11 @@ class FeatureAgent(BaseAgent):
     def _perform_feature_analysis(self, dataset_handle: DatasetHandle, context: Dict[str, Any]) -> Dict[str, Any]:
         """Perform comprehensive feature analysis"""
 
+        # Get thresholds from context or use defaults
+        thresholds = context.get('thresholds') if context else None
+        if thresholds is None:
+            thresholds = QualityThresholds()
+
         # Get sample data
         sample_size = min(10000, dataset_handle.shape[0])
         df_sample = dataset_handle.sample(sample_size)
@@ -54,16 +60,20 @@ class FeatureAgent(BaseAgent):
         analysis = {
             "sample_size": len(df_sample),
             "total_features": len(df_sample.columns),
-            "correlations": self._analyze_correlations(df_sample),
-            "multicollinearity": self._detect_multicollinearity(df_sample),
+            "correlations": self._analyze_correlations(df_sample, thresholds),
+            "multicollinearity": self._detect_multicollinearity(df_sample, thresholds),
             "feature_importance_hints": self._get_feature_importance_hints(df_sample, profile),
             "feature_interactions": self._detect_feature_interactions(df_sample),
-            "engineering_suggestions": self._suggest_feature_engineering(df_sample, profile)
+            "engineering_suggestions": self._suggest_feature_engineering(df_sample, profile),
+            "thresholds_used": {
+                'strong_correlation_threshold': thresholds.strong_correlation_threshold,
+                'moderate_correlation_threshold': thresholds.moderate_correlation_threshold
+            }
         }
 
         return analysis
 
-    def _analyze_correlations(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def _analyze_correlations(self, df: pd.DataFrame, thresholds: QualityThresholds) -> Dict[str, Any]:
         """Analyze correlations between numeric features"""
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 
@@ -81,21 +91,21 @@ class FeatureAgent(BaseAgent):
         strong_correlations = []
         moderate_correlations = []
 
-        # Find significant correlations
+        # Find significant correlations using configurable thresholds
         for i in range(len(corr_matrix.columns)):
             for j in range(i + 1, len(corr_matrix.columns)):
                 corr_val = corr_matrix.iloc[i, j]
                 col1 = corr_matrix.columns[i]
                 col2 = corr_matrix.columns[j]
 
-                if abs(corr_val) > 0.7:
+                if abs(corr_val) > thresholds.strong_correlation_threshold:
                     strong_correlations.append({
                         "feature1": col1,
                         "feature2": col2,
                         "correlation": float(corr_val),
                         "strength": "strong"
                     })
-                elif abs(corr_val) > 0.4:
+                elif abs(corr_val) > thresholds.moderate_correlation_threshold:
                     moderate_correlations.append({
                         "feature1": col1,
                         "feature2": col2,
@@ -111,7 +121,7 @@ class FeatureAgent(BaseAgent):
             "summary": f"{len(strong_correlations)} strong, {len(moderate_correlations)} moderate"
         }
 
-    def _detect_multicollinearity(self, df: pd.DataFrame) -> Dict[str, Any]:
+    def _detect_multicollinearity(self, df: pd.DataFrame, thresholds: QualityThresholds) -> Dict[str, Any]:
         """Detect multicollinearity using VIF (Variance Inflation Factor) approximation"""
         numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 

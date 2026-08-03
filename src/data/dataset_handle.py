@@ -1,5 +1,5 @@
 import os
-from typing import Dict, Any, List, Literal
+from typing import Dict, Any, List, Literal, Optional
 import pandas as pd
 from pathlib import Path
 
@@ -69,17 +69,23 @@ class DatasetHandle:
 
         return missing_info
 
-    def get_cardinality_info(self) -> Dict[str, Any]:
-        """Get cardinality (unique counts) information"""
+    def get_cardinality_info(self, high_cardinality_threshold: float = 90.0) -> Dict[str, Any]:
+        """
+        Get cardinality (unique counts) information
+
+        Args:
+            high_cardinality_threshold: Percentage threshold for high cardinality (default: 90.0)
+        """
         unique_counts = self.backend.get_unique_counts()
         total_rows = self.shape[0]
 
         cardinality_info = {}
         for col, count in unique_counts.items():
+            unique_pct = (count / total_rows * 100) if total_rows > 0 else 0
             cardinality_info[col] = {
                 "unique_count": count,
-                "unique_percentage": (count / total_rows * 100) if total_rows > 0 else 0,
-                "is_high_cardinality": count > total_rows * 0.9
+                "unique_percentage": unique_pct,
+                "is_high_cardinality": unique_pct > high_cardinality_threshold
             }
 
         return cardinality_info
@@ -117,23 +123,38 @@ class DatasetHandle:
             "other": other_cols
         }
 
-    def get_profile_summary(self) -> Dict[str, Any]:
-        """Get comprehensive profile summary for agents"""
+    def get_profile_summary(self, missing_threshold: float = 40.0,
+                           high_cardinality_threshold: float = 90.0,
+                           low_cardinality_threshold: float = 5.0) -> Dict[str, Any]:
+        """
+        Get comprehensive profile summary for agents
+
+        Args:
+            missing_threshold: Percentage threshold for high missing values (default: 40.0)
+            high_cardinality_threshold: Percentage threshold for high cardinality (default: 90.0)
+            low_cardinality_threshold: Percentage threshold for low cardinality (default: 5.0)
+        """
         info = self.get_info()
         missing_info = self.get_missing_info()
-        cardinality_info = self.get_cardinality_info()
+        cardinality_info = self.get_cardinality_info(high_cardinality_threshold)
         column_types = self.get_column_types()
 
         # Find columns with high missing values
         high_missing_cols = [
             col for col, data in missing_info.items()
-            if data["percentage"] > 40
+            if data["percentage"] > missing_threshold
         ]
 
         # Find high cardinality columns
         high_cardinality_cols = [
             col for col, data in cardinality_info.items()
             if data["is_high_cardinality"]
+        ]
+
+        # Find low cardinality columns
+        low_cardinality_cols = [
+            col for col, data in cardinality_info.items()
+            if 0 < data["unique_percentage"] < low_cardinality_threshold
         ]
 
         return {
@@ -148,7 +169,8 @@ class DatasetHandle:
             "cardinality_info": cardinality_info,
             "issues": {
                 "high_missing_cols": high_missing_cols,
-                "high_cardinality_cols": high_cardinality_cols
+                "high_cardinality_cols": high_cardinality_cols,
+                "low_cardinality_cols": low_cardinality_cols
             }
         }
 
